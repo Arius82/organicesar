@@ -1,14 +1,8 @@
-import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, CheckCheck, Trash2 } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-const typeColors = {
-  success: 'bg-success/10 text-success',
-  info: 'bg-info/10 text-info',
-  warning: 'bg-warning/10 text-warning',
-};
 
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
