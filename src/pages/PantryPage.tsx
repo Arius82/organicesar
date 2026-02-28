@@ -1,5 +1,6 @@
 import { useApp } from '@/context/AppContext';
 import { Package, AlertTriangle } from 'lucide-react';
+import AddPantryItemDialog from '@/components/AddPantryItemDialog';
 
 const categoryEmoji: Record<string, string> = {
   'Grãos': '🌾', 'Laticínios': '🥛', 'Proteínas': '🥚', 'Padaria': '🍞',
@@ -17,7 +18,10 @@ const PantryPage = () => {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">{pantry.length} itens na despensa</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{pantry.length} itens na despensa</p>
+        {isMaster && <AddPantryItemDialog />}
+      </div>
 
       {Object.entries(grouped).map(([cat, items]) => (
         <div key={cat}>
