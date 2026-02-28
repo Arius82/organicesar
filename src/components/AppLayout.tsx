@@ -5,6 +5,7 @@ import {
   LayoutDashboard, CheckSquare, Users, Package, ShoppingCart,
   UtensilsCrossed, BarChart3, Trophy, LogOut, Leaf, Menu, X, ChevronRight
 } from 'lucide-react';
+import NotificationBell from '@/components/NotificationBell';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, masterOnly: false },
@@ -94,13 +95,14 @@ const AppLayout = () => {
           <h2 className="font-display font-semibold text-foreground">
             {filteredNav.find(n => n.path === location.pathname)?.label || 'Dashboard'}
           </h2>
-          {currentUser?.tipo === 'simples' && (
-            <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
+            <NotificationBell />
+            {currentUser?.tipo === 'simples' && (
               <div className="gradient-reward text-reward-foreground text-xs font-bold px-3 py-1 rounded-full">
                 R$ {currentUser.saldo.toFixed(2)}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </header>
         <div className="p-4 lg:p-6 animate-fade-in">
           <Outlet />

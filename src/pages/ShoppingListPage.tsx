@@ -1,5 +1,6 @@
 import { useApp } from '@/context/AppContext';
 import { ShoppingCart, Check, Zap } from 'lucide-react';
+import AddShoppingItemDialog from '@/components/AddShoppingItemDialog';
 
 const ShoppingListPage = () => {
   const { shopping, isMaster, toggleShoppingItem } = useApp();
@@ -9,7 +10,10 @@ const ShoppingListPage = () => {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">{pendingItems.length} pendente{pendingItems.length !== 1 ? 's' : ''} • {boughtItems.length} comprado{boughtItems.length !== 1 ? 's' : ''}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{pendingItems.length} pendente{pendingItems.length !== 1 ? 's' : ''} • {boughtItems.length} comprado{boughtItems.length !== 1 ? 's' : ''}</p>
+        {isMaster && <AddShoppingItemDialog />}
+      </div>
 
       {pendingItems.length > 0 && (
         <div className="space-y-2">

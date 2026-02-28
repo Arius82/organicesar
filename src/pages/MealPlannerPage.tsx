@@ -1,5 +1,6 @@
 import { useApp } from '@/context/AppContext';
 import { Coffee, Sun, Moon } from 'lucide-react';
+import AddMealDialog from '@/components/AddMealDialog';
 
 const mealConfig = {
   cafe: { label: 'Café da Manhã', icon: Coffee, emoji: '☕' },
@@ -8,7 +9,7 @@ const mealConfig = {
 };
 
 const MealPlannerPage = () => {
-  const { meals } = useApp();
+  const { meals, isMaster } = useApp();
 
   const grouped = meals.reduce((acc, meal) => {
     if (!acc[meal.data]) acc[meal.data] = [];
@@ -20,6 +21,10 @@ const MealPlannerPage = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{meals.length} refeições planejadas</p>
+        {isMaster && <AddMealDialog />}
+      </div>
       {Object.entries(grouped).map(([date, dayMeals]) => {
         const d = new Date(date + 'T12:00:00');
         return (

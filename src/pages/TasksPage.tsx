@@ -1,6 +1,7 @@
 import { useApp } from '@/context/AppContext';
 import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import CreateTaskDialog from '@/components/CreateTaskDialog';
 
 const statusConfig = {
   pendente: { label: 'Pendente', icon: Clock, className: 'bg-muted text-muted-foreground' },
@@ -23,6 +24,7 @@ const TasksPage = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{userTasks.length} tarefa{userTasks.length !== 1 ? 's' : ''}</p>
+        {isMaster && <CreateTaskDialog />}
       </div>
 
       <div className="space-y-3">
