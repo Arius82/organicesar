@@ -63,6 +63,10 @@ interface AppContextType {
   isMaster: boolean;
   updateTaskStatus: (taskId: string, newStatus: TaskStatus) => void;
   toggleShoppingItem: (itemId: string) => void;
+  addTask: (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => void;
+  addPantryItem: (item: Omit<PantryItem, 'id'>) => void;
+  addShoppingItem: (item: { nome_item: string; quantidade: number }) => void;
+  addMeal: (meal: Omit<MealPlan, 'id'>) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -78,9 +82,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [rewards] = useState<RewardHistory[]>(mockRewards);
-  const [pantry] = useState<PantryItem[]>(mockPantry);
+  const [pantry, setPantry] = useState<PantryItem[]>(mockPantry);
   const [shopping, setShopping] = useState<ShoppingItem[]>(mockShopping);
-  const [meals] = useState<MealPlan[]>(mockMeals);
+  const [meals, setMeals] = useState<MealPlan[]>(mockMeals);
 
   const isMaster = currentUser?.tipo === 'master';
 
@@ -116,10 +120,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   }, []);
 
+  const addTask = useCallback((task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => {
+    setTasks(prev => [...prev, {
+      ...task, id: Date.now().toString(), status: 'pendente' as const,
+      data_criacao: new Date().toISOString().split('T')[0],
+    }]);
+  }, []);
+
+  const addPantryItem = useCallback((item: Omit<PantryItem, 'id'>) => {
+    setPantry(prev => [...prev, { ...item, id: Date.now().toString() }]);
+  }, []);
+
+  const addShoppingItem = useCallback((item: { nome_item: string; quantidade: number }) => {
+    setShopping(prev => [...prev, {
+      ...item, id: Date.now().toString(), status: 'pendente' as const, gerado_automaticamente: false,
+    }]);
+  }, []);
+
+  const addMeal = useCallback((meal: Omit<MealPlan, 'id'>) => {
+    setMeals(prev => [...prev, { ...meal, id: Date.now().toString() }]);
+  }, []);
+
   return (
     <AppContext.Provider value={{
       currentUser, users, tasks, rewards, pantry, shopping, meals,
       login, logout, isMaster, updateTaskStatus, toggleShoppingItem,
+      addTask, addPantryItem, addShoppingItem, addMeal,
     }}>
       {children}
     </AppContext.Provider>
