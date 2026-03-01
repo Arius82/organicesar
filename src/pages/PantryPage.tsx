@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Pencil, Trash2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -20,8 +20,19 @@ const PantryPage = () => {
   const [editing, setEditing] = useState<PantryItem | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ nome_item: '', quantidade: '', quantidade_minima: '', categoria: '', validade: '' });
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('todos');
+  const [stockFilter, setStockFilter] = useState('todos');
 
-  const grouped = pantry.reduce((acc, item) => {
+  const filtered = pantry.filter(item => {
+    const matchesSearch = item.nome_item.toLowerCase().includes(search.toLowerCase());
+    const matchesCat = catFilter === 'todos' || item.categoria === catFilter;
+    const low = item.quantidade <= item.quantidade_minima;
+    const matchesStock = stockFilter === 'todos' || (stockFilter === 'baixo' && low) || (stockFilter === 'ok' && !low);
+    return matchesSearch && matchesCat && matchesStock;
+  });
+
+  const grouped = filtered.reduce((acc, item) => {
     if (!acc[item.categoria]) acc[item.categoria] = [];
     acc[item.categoria].push(item);
     return acc;
@@ -45,9 +56,33 @@ const PantryPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{pantry.length} itens na despensa</p>
-        {isMaster && <AddPantryItemDialog />}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar item..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          {isMaster && <AddPantryItemDialog />}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={catFilter} onValueChange={setCatFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas categorias</SelectItem>
+              {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={stockFilter} onValueChange={setStockFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Estoque" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todo estoque</SelectItem>
+              <SelectItem value="baixo">Estoque baixo</SelectItem>
+              <SelectItem value="ok">Estoque OK</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground ml-auto">{filtered.length} itens</p>
+        </div>
       </div>
 
       {Object.entries(grouped).map(([cat, items]) => (
@@ -84,6 +119,7 @@ const PantryPage = () => {
         </div>
       ))}
 
+      {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum item encontrado.</p>}
       {!isMaster && <p className="text-xs text-muted-foreground text-center italic">Somente visualização</p>}
 
       {/* Edit Dialog */}

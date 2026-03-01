@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, Pencil, Trash2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import CreateTaskDialog from '@/components/CreateTaskDialog';
-import type { Task, TaskFrequency } from '@/types';
+import type { Task, TaskFrequency, TaskStatus } from '@/types';
 
 const statusConfig = {
   pendente: { label: 'Pendente', icon: Clock, className: 'bg-muted text-muted-foreground' },
@@ -24,12 +24,22 @@ const TasksPage = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ titulo: '', descricao: '', usuario_id: '', frequencia: 'diaria' as TaskFrequency, valor_recompensa: '', data_limite: '' });
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [freqFilter, setFreqFilter] = useState<string>('todos');
 
   if (!currentUser) return null;
 
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
   const simpleUsers = users.filter(u => u.tipo === 'simples');
   const isOverdue = (task: Task) => task.status === 'pendente' && new Date(task.data_limite) < new Date();
+
+  const filteredTasks = userTasks.filter(t => {
+    const matchesSearch = t.titulo.toLowerCase().includes(search.toLowerCase()) || t.descricao.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'todos' || t.status === statusFilter;
+    const matchesFreq = freqFilter === 'todos' || t.frequencia === freqFilter;
+    return matchesSearch && matchesStatus && matchesFreq;
+  });
 
   const openEdit = (task: Task) => {
     setEditForm({
@@ -53,13 +63,42 @@ const TasksPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{userTasks.length} tarefa{userTasks.length !== 1 ? 's' : ''}</p>
-        {isMaster && <CreateTaskDialog />}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar tarefa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          {isMaster && <CreateTaskDialog />}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos status</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="aguardando_aprovacao">Aguardando</SelectItem>
+              <SelectItem value="concluida">Concluída</SelectItem>
+              <SelectItem value="rejeitada">Rejeitada</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={freqFilter} onValueChange={setFreqFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Frequência" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas freq.</SelectItem>
+              <SelectItem value="diaria">Diária</SelectItem>
+              <SelectItem value="semanal">Semanal</SelectItem>
+              <SelectItem value="mensal">Mensal</SelectItem>
+              <SelectItem value="unica">Única</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground ml-auto">{filteredTasks.length} tarefa{filteredTasks.length !== 1 ? 's' : ''}</p>
+        </div>
       </div>
 
       <div className="space-y-3">
-        {userTasks.map(task => {
+        {filteredTasks.map(task => {
           const status = statusConfig[task.status];
           const StatusIcon = status.icon;
           const user = users.find(u => u.id === task.usuario_id);
@@ -116,6 +155,9 @@ const TasksPage = () => {
             </div>
           );
         })}
+        {filteredTasks.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tarefa encontrada.</p>
+        )}
       </div>
 
       {/* Edit Dialog */}
