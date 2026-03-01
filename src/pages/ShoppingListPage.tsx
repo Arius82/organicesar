@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { ShoppingCart, Check, Zap, Pencil, Trash2 } from 'lucide-react';
+import { ShoppingCart, Check, Zap, Pencil, Trash2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import AddShoppingItemDialog from '@/components/AddShoppingItemDialog';
 import type { ShoppingItem } from '@/types';
@@ -13,9 +14,19 @@ const ShoppingListPage = () => {
   const [editing, setEditing] = useState<ShoppingItem | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ nome_item: '', quantidade: '' });
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const [sourceFilter, setSourceFilter] = useState('todos');
 
-  const pendingItems = shopping.filter(i => i.status === 'pendente');
-  const boughtItems = shopping.filter(i => i.status === 'comprado');
+  const filtered = shopping.filter(item => {
+    const matchesSearch = item.nome_item.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'todos' || item.status === statusFilter;
+    const matchesSource = sourceFilter === 'todos' || (sourceFilter === 'auto' && item.gerado_automaticamente) || (sourceFilter === 'manual' && !item.gerado_automaticamente);
+    return matchesSearch && matchesStatus && matchesSource;
+  });
+
+  const pendingItems = filtered.filter(i => i.status === 'pendente');
+  const boughtItems = filtered.filter(i => i.status === 'comprado');
 
   const openEdit = (item: ShoppingItem) => {
     setEditForm({ nome_item: item.nome_item, quantidade: item.quantidade.toString() });
@@ -57,9 +68,34 @@ const ShoppingListPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{pendingItems.length} pendente{pendingItems.length !== 1 ? 's' : ''} • {boughtItems.length} comprado{boughtItems.length !== 1 ? 's' : ''}</p>
-        {isMaster && <AddShoppingItemDialog />}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar item..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          {isMaster && <AddShoppingItemDialog />}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos status</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="comprado">Comprado</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Origem" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas origens</SelectItem>
+              <SelectItem value="auto">Automático</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground ml-auto">{pendingItems.length} pendente{pendingItems.length !== 1 ? 's' : ''} • {boughtItems.length} comprado{boughtItems.length !== 1 ? 's' : ''}</p>
+        </div>
       </div>
 
       {pendingItems.length > 0 && (
@@ -75,6 +111,8 @@ const ShoppingListPage = () => {
           {boughtItems.map(item => renderItem(item, true))}
         </div>
       )}
+
+      {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum item encontrado.</p>}
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
