@@ -1,24 +1,121 @@
+import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Users, Shield, User as UserIcon } from 'lucide-react';
+import { Shield, User as UserIcon, Plus, Pencil, Trash2, Mail, Star, Flame } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useNotifications } from '@/context/NotificationContext';
+import type { User, UserType } from '@/types';
 
 const UsersPage = () => {
-  const { users } = useApp();
+  const { users, currentUser, isMaster, addUser, editUser, deleteUser } = useApp();
+  const { addNotification } = useNotifications();
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<User | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const emptyForm = { nome: '', email: '', tipo: 'simples' as UserType, saldo: '0', ativo: true };
+  const [addForm, setAddForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState({ nome: '', email: '', tipo: 'simples' as UserType, saldo: '', ativo: true });
+
+  const openEdit = (user: User) => {
+    setEditForm({ nome: user.nome, email: user.email, tipo: user.tipo, saldo: user.saldo.toString(), ativo: user.ativo });
+    setEditing(user);
+  };
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addForm.nome.trim() || !addForm.email.trim()) return;
+    addUser({ nome: addForm.nome.trim(), email: addForm.email.trim(), tipo: addForm.tipo, saldo: parseFloat(addForm.saldo) || 0, ativo: addForm.ativo });
+    addNotification(`Usuário "${addForm.nome}" criado com sucesso`, 'success');
+    setAddForm(emptyForm);
+    setShowAdd(false);
+  };
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    editUser(editing.id, { nome: editForm.nome.trim(), email: editForm.email.trim(), tipo: editForm.tipo, saldo: parseFloat(editForm.saldo) || 0, ativo: editForm.ativo });
+    addNotification(`Usuário "${editForm.nome}" atualizado`, 'info');
+    setEditing(null);
+  };
+
+  const handleDelete = (id: string) => {
+    const user = users.find(u => u.id === id);
+    deleteUser(id);
+    addNotification(`Usuário "${user?.nome}" removido`, 'warning');
+    setDeleteConfirm(null);
+  };
+
+  const UserForm = ({ form, setForm, onSubmit, submitLabel }: {
+    form: typeof addForm; setForm: (fn: (f: typeof addForm) => typeof addForm) => void; onSubmit: (e: React.FormEvent) => void; submitLabel: string;
+  }) => (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label>Nome completo</Label>
+        <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: João Silva" required maxLength={100} />
+      </div>
+      <div className="space-y-2">
+        <Label>E-mail</Label>
+        <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="joao@familia.com" required />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Tipo de usuário</Label>
+          <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v as UserType }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="master">Master</SelectItem>
+              <SelectItem value="simples">Simples</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Saldo inicial (R$)</Label>
+          <Input type="number" step="0.01" min="0" value={form.saldo} onChange={e => setForm(f => ({ ...f, saldo: e.target.value }))} />
+        </div>
+      </div>
+      <div className="flex items-center justify-between rounded-lg border border-input p-3">
+        <Label className="cursor-pointer">Usuário ativo</Label>
+        <Switch checked={form.ativo} onCheckedChange={v => setForm(f => ({ ...f, ativo: v }))} />
+      </div>
+      <Button type="submit" className="w-full gradient-primary text-primary-foreground">{submitLabel}</Button>
+    </form>
+  );
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">{users.length} membros da família</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{users.length} membros da família</p>
+        {isMaster && (
+          <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => setShowAdd(true)}>
+            <Plus className="w-4 h-4" /> Novo Usuário
+          </Button>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {users.map(user => (
-          <div key={user.id} className="glass-card rounded-xl p-5 animate-fade-in">
-            <div className="flex items-center gap-4 mb-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                {user.nome[0]}
+          <div key={user.id} className={`glass-card rounded-xl p-5 animate-fade-in relative ${!user.ativo ? 'opacity-50' : ''}`}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                  {user.nome[0]}
+                </div>
+                <div>
+                  <h3 className="font-display font-semibold text-foreground">{user.nome}</h3>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" /> {user.email}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-display font-semibold text-foreground">{user.nome}</h3>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
-              </div>
+              {isMaster && user.id !== currentUser?.id && (
+                <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEdit(user)}><Pencil className="w-4 h-4" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(user.id)}><Trash2 className="w-4 h-4" /></Button>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <span className={`text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1 ${
@@ -27,15 +124,43 @@ const UsersPage = () => {
                 {user.tipo === 'master' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
                 {user.tipo === 'master' ? 'Master' : 'Simples'}
               </span>
-              <span className="text-xs text-muted-foreground">{user.nivel}</span>
+              <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {user.nivel}</span>
               <span className="text-xs font-medium text-primary">{user.pontos} pts</span>
-              {user.tipo === 'simples' && (
-                <span className="text-xs font-medium text-reward">R$ {user.saldo.toFixed(2)}</span>
-              )}
+              <span className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {user.sequencia_dias}d</span>
+              {user.tipo === 'simples' && <span className="text-xs font-medium text-reward">R$ {user.saldo.toFixed(2)}</span>}
+              {!user.ativo && <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">Inativo</span>}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Add User Dialog */}
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle className="font-display">Novo Usuário</DialogTitle></DialogHeader>
+          <UserForm form={addForm} setForm={setAddForm} onSubmit={handleAdd} submitLabel="Criar Usuário" />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle className="font-display">Editar Usuário</DialogTitle></DialogHeader>
+          <UserForm form={editForm} setForm={setEditForm} onSubmit={handleEdit} submitLabel="Salvar Alterações" />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm */}
+      <Dialog open={!!deleteConfirm} onOpenChange={o => !o && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Excluir Usuário?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">O usuário e todas as suas tarefas serão removidos. Esta ação não pode ser desfeita.</p>
+          <div className="flex gap-2 justify-end mt-2">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Excluir</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

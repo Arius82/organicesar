@@ -1,7 +1,14 @@
+import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import CreateTaskDialog from '@/components/CreateTaskDialog';
+import type { Task, TaskFrequency } from '@/types';
 
 const statusConfig = {
   pendente: { label: 'Pendente', icon: Clock, className: 'bg-muted text-muted-foreground' },
@@ -13,12 +20,36 @@ const statusConfig = {
 const freqLabels = { diaria: 'Diária', semanal: 'Semanal', mensal: 'Mensal', unica: 'Única' };
 
 const TasksPage = () => {
-  const { currentUser, tasks, users, isMaster, updateTaskStatus } = useApp();
+  const { currentUser, tasks, users, isMaster, updateTaskStatus, editTask, deleteTask } = useApp();
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ titulo: '', descricao: '', usuario_id: '', frequencia: 'diaria' as TaskFrequency, valor_recompensa: '', data_limite: '' });
+
   if (!currentUser) return null;
 
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
+  const simpleUsers = users.filter(u => u.tipo === 'simples');
+  const isOverdue = (task: Task) => task.status === 'pendente' && new Date(task.data_limite) < new Date();
 
-  const isOverdue = (task: typeof tasks[0]) => task.status === 'pendente' && new Date(task.data_limite) < new Date();
+  const openEdit = (task: Task) => {
+    setEditForm({
+      titulo: task.titulo, descricao: task.descricao, usuario_id: task.usuario_id,
+      frequencia: task.frequencia, valor_recompensa: task.valor_recompensa.toString(), data_limite: task.data_limite,
+    });
+    setEditingTask(task);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask) return;
+    editTask(editingTask.id, {
+      titulo: editForm.titulo.trim(), descricao: editForm.descricao.trim(), usuario_id: editForm.usuario_id,
+      frequencia: editForm.frequencia, valor_recompensa: parseFloat(editForm.valor_recompensa) || 0, data_limite: editForm.data_limite,
+    });
+    setEditingTask(null);
+  };
+
+  const handleDelete = (id: string) => { deleteTask(id); setDeleteConfirm(null); };
 
   return (
     <div className="space-y-4">
@@ -54,29 +85,31 @@ const TasksPage = () => {
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground">{freqLabels[task.frequencia]}</span>
-                    <span className="text-xs font-medium text-reward flex items-center gap-1">
-                      R$ {task.valor_recompensa.toFixed(2)}
-                    </span>
+                    <span className="text-xs font-medium text-reward flex items-center gap-1">R$ {task.valor_recompensa.toFixed(2)}</span>
                     <span className="text-xs text-muted-foreground">Prazo: {new Date(task.data_limite).toLocaleDateString('pt-BR')}</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5 flex-shrink-0">
-                  {/* Simple user: mark as done */}
                   {!isMaster && task.status === 'pendente' && (
                     <Button size="sm" className="gradient-primary text-primary-foreground text-xs" onClick={() => updateTaskStatus(task.id, 'aguardando_aprovacao')}>
                       Concluir <ChevronRight className="w-3 h-3 ml-1" />
                     </Button>
                   )}
-                  {/* Master: approve/reject */}
                   {isMaster && task.status === 'aguardando_aprovacao' && (
                     <>
-                      <Button size="sm" className="gradient-primary text-primary-foreground text-xs" onClick={() => updateTaskStatus(task.id, 'concluida')}>
-                        Aprovar
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-xs text-destructive border-destructive/30" onClick={() => updateTaskStatus(task.id, 'rejeitada')}>
-                        Rejeitar
-                      </Button>
+                      <Button size="sm" className="gradient-primary text-primary-foreground text-xs" onClick={() => updateTaskStatus(task.id, 'concluida')}>Aprovar</Button>
+                      <Button size="sm" variant="outline" className="text-xs text-destructive border-destructive/30" onClick={() => updateTaskStatus(task.id, 'rejeitada')}>Rejeitar</Button>
                     </>
+                  )}
+                  {isMaster && (
+                    <div className="flex gap-1 mt-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(task)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(task.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -84,6 +117,53 @@ const TasksPage = () => {
           );
         })}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingTask} onOpenChange={o => !o && setEditingTask(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle className="font-display">Editar Tarefa</DialogTitle></DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2"><Label>Título</Label><Input value={editForm.titulo} onChange={e => setEditForm(f => ({ ...f, titulo: e.target.value }))} required /></div>
+            <div className="space-y-2"><Label>Descrição</Label><Textarea value={editForm.descricao} onChange={e => setEditForm(f => ({ ...f, descricao: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Select value={editForm.usuario_id} onValueChange={v => setEditForm(f => ({ ...f, usuario_id: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{simpleUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Frequência</Label>
+                <Select value={editForm.frequencia} onValueChange={v => setEditForm(f => ({ ...f, frequencia: v as TaskFrequency }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="diaria">Diária</SelectItem><SelectItem value="semanal">Semanal</SelectItem>
+                    <SelectItem value="mensal">Mensal</SelectItem><SelectItem value="unica">Única</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Recompensa (R$)</Label><Input type="number" step="0.50" min="0" value={editForm.valor_recompensa} onChange={e => setEditForm(f => ({ ...f, valor_recompensa: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Prazo</Label><Input type="date" value={editForm.data_limite} onChange={e => setEditForm(f => ({ ...f, data_limite: e.target.value }))} required /></div>
+            </div>
+            <Button type="submit" className="w-full gradient-primary text-primary-foreground">Salvar Alterações</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm */}
+      <Dialog open={!!deleteConfirm} onOpenChange={o => !o && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Excluir Tarefa?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Esta ação não pode ser desfeita.</p>
+          <div className="flex gap-2 justify-end mt-2">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Excluir</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

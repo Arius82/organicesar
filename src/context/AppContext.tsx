@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { User, Task, RewardHistory, PantryItem, ShoppingItem, MealPlan, TaskStatus } from '@/types';
+import type { User, Task, RewardHistory, PantryItem, ShoppingItem, MealPlan, TaskStatus, TaskFrequency } from '@/types';
 
 const mockUsers: User[] = [
   { id: '1', nome: 'César', email: 'cesar@familia.com', tipo: 'master', saldo: 0, ativo: true, data_criacao: '2024-01-01', pontos: 450, nivel: 'Mestre da Casa', sequencia_dias: 15 },
@@ -64,9 +64,18 @@ interface AppContextType {
   updateTaskStatus: (taskId: string, newStatus: TaskStatus) => void;
   toggleShoppingItem: (itemId: string) => void;
   addTask: (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => void;
+  editTask: (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => void;
+  deleteTask: (taskId: string) => void;
   addPantryItem: (item: Omit<PantryItem, 'id'>) => void;
+  editPantryItem: (itemId: string, data: Partial<Omit<PantryItem, 'id'>>) => void;
+  deletePantryItem: (itemId: string) => void;
   addShoppingItem: (item: { nome_item: string; quantidade: number }) => void;
+  editShoppingItem: (itemId: string, data: Partial<Omit<ShoppingItem, 'id'>>) => void;
+  deleteShoppingItem: (itemId: string) => void;
   addMeal: (meal: Omit<MealPlan, 'id'>) => void;
+  addUser: (user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => void;
+  editUser: (userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => void;
+  deleteUser: (userId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -103,7 +112,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const task = { ...t, status: newStatus };
         if (newStatus === 'concluida') {
           task.data_conclusao = new Date().toISOString().split('T')[0];
-          // Update user balance
           setUsers(u => u.map(user =>
             user.id === t.usuario_id ? { ...user, saldo: user.saldo + t.valor_recompensa, pontos: user.pontos + 10 } : user
           ));
@@ -127,8 +135,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }]);
   }, []);
 
+  const editTask = useCallback((taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...data } : t));
+  }, []);
+
+  const deleteTask = useCallback((taskId: string) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  }, []);
+
   const addPantryItem = useCallback((item: Omit<PantryItem, 'id'>) => {
     setPantry(prev => [...prev, { ...item, id: Date.now().toString() }]);
+  }, []);
+
+  const editPantryItem = useCallback((itemId: string, data: Partial<Omit<PantryItem, 'id'>>) => {
+    setPantry(prev => prev.map(i => i.id === itemId ? { ...i, ...data } : i));
+  }, []);
+
+  const deletePantryItem = useCallback((itemId: string) => {
+    setPantry(prev => prev.filter(i => i.id !== itemId));
   }, []);
 
   const addShoppingItem = useCallback((item: { nome_item: string; quantidade: number }) => {
@@ -137,15 +161,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }]);
   }, []);
 
+  const editShoppingItem = useCallback((itemId: string, data: Partial<Omit<ShoppingItem, 'id'>>) => {
+    setShopping(prev => prev.map(i => i.id === itemId ? { ...i, ...data } : i));
+  }, []);
+
+  const deleteShoppingItem = useCallback((itemId: string) => {
+    setShopping(prev => prev.filter(i => i.id !== itemId));
+  }, []);
+
   const addMeal = useCallback((meal: Omit<MealPlan, 'id'>) => {
     setMeals(prev => [...prev, { ...meal, id: Date.now().toString() }]);
+  }, []);
+
+  const addUser = useCallback((user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
+    setUsers(prev => [...prev, {
+      ...user,
+      id: Date.now().toString(),
+      data_criacao: new Date().toISOString().split('T')[0],
+      pontos: 0,
+      nivel: 'Iniciante' as const,
+      sequencia_dias: 0,
+    }]);
+  }, []);
+
+  const editUser = useCallback((userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+  }, []);
+
+  const deleteUser = useCallback((userId: string) => {
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    setTasks(prev => prev.filter(t => t.usuario_id !== userId));
   }, []);
 
   return (
     <AppContext.Provider value={{
       currentUser, users, tasks, rewards, pantry, shopping, meals,
       login, logout, isMaster, updateTaskStatus, toggleShoppingItem,
-      addTask, addPantryItem, addShoppingItem, addMeal,
+      addTask, editTask, deleteTask,
+      addPantryItem, editPantryItem, deletePantryItem,
+      addShoppingItem, editShoppingItem, deleteShoppingItem,
+      addMeal,
+      addUser, editUser, deleteUser,
     }}>
       {children}
     </AppContext.Provider>
