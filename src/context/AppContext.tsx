@@ -1,54 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { User, Task, RewardHistory, PantryItem, ShoppingItem, MealPlan, TaskStatus, TaskFrequency } from '@/types';
-
-const mockUsers: User[] = [
-  { id: '1', nome: 'César', email: 'cesar@familia.com', tipo: 'master', saldo: 0, ativo: true, data_criacao: '2024-01-01', pontos: 450, nivel: 'Mestre da Casa', sequencia_dias: 15 },
-  { id: '2', nome: 'Ana', email: 'ana@familia.com', tipo: 'master', saldo: 0, ativo: true, data_criacao: '2024-01-01', pontos: 380, nivel: 'Organizado', sequencia_dias: 10 },
-  { id: '3', nome: 'Lucas', email: 'lucas@familia.com', tipo: 'simples', saldo: 45.50, ativo: true, data_criacao: '2024-02-01', pontos: 220, nivel: 'Organizado', sequencia_dias: 7 },
-  { id: '4', nome: 'Sofia', email: 'sofia@familia.com', tipo: 'simples', saldo: 32.00, ativo: true, data_criacao: '2024-02-01', pontos: 150, nivel: 'Iniciante', sequencia_dias: 3 },
-];
-
-const mockTasks: Task[] = [
-  { id: '1', titulo: 'Lavar a louça', descricao: 'Lavar toda a louça do almoço', usuario_id: '3', frequencia: 'diaria', valor_recompensa: 3.00, status: 'pendente', data_criacao: '2024-03-01', data_limite: '2024-03-01' },
-  { id: '2', titulo: 'Arrumar o quarto', descricao: 'Arrumar a cama e organizar o quarto', usuario_id: '4', frequencia: 'diaria', valor_recompensa: 2.50, status: 'aguardando_aprovacao', data_criacao: '2024-03-01', data_limite: '2024-03-01' },
-  { id: '3', titulo: 'Varrer a casa', descricao: 'Varrer todos os cômodos', usuario_id: '3', frequencia: 'diaria', valor_recompensa: 5.00, status: 'concluida', data_criacao: '2024-02-28', data_limite: '2024-02-28', data_conclusao: '2024-02-28' },
-  { id: '4', titulo: 'Regar as plantas', descricao: 'Regar todas as plantas do jardim', usuario_id: '4', frequencia: 'semanal', valor_recompensa: 4.00, status: 'pendente', data_criacao: '2024-03-01', data_limite: '2024-03-07' },
-  { id: '5', titulo: 'Organizar a garagem', descricao: 'Limpar e organizar a garagem', usuario_id: '3', frequencia: 'mensal', valor_recompensa: 15.00, status: 'pendente', data_criacao: '2024-03-01', data_limite: '2024-03-30' },
-  { id: '6', titulo: 'Colocar lixo para fora', descricao: 'Levar o lixo até a calçada', usuario_id: '3', frequencia: 'diaria', valor_recompensa: 2.00, status: 'rejeitada', data_criacao: '2024-02-27', data_limite: '2024-02-27' },
-];
-
-const mockRewards: RewardHistory[] = [
-  { id: '1', usuario_id: '3', valor: 5.00, tipo: 'credito', descricao: 'Varrer a casa - concluída', data: '2024-02-28' },
-  { id: '2', usuario_id: '3', valor: 3.00, tipo: 'credito', descricao: 'Lavar a louça - concluída', data: '2024-02-27' },
-  { id: '3', usuario_id: '4', valor: 2.50, tipo: 'credito', descricao: 'Arrumar o quarto - concluída', data: '2024-02-27' },
-  { id: '4', usuario_id: '3', valor: 10.00, tipo: 'debito', descricao: 'Saque de recompensa', data: '2024-02-25' },
-];
-
-const mockPantry: PantryItem[] = [
-  { id: '1', nome_item: 'Arroz', quantidade: 2, quantidade_minima: 1, categoria: 'Grãos', validade: '2025-06-01' },
-  { id: '2', nome_item: 'Feijão', quantidade: 1, quantidade_minima: 2, categoria: 'Grãos', validade: '2025-05-01' },
-  { id: '3', nome_item: 'Leite', quantidade: 3, quantidade_minima: 2, categoria: 'Laticínios', validade: '2024-03-15' },
-  { id: '4', nome_item: 'Ovos', quantidade: 6, quantidade_minima: 12, categoria: 'Proteínas', validade: '2024-03-10' },
-  { id: '5', nome_item: 'Pão de forma', quantidade: 1, quantidade_minima: 1, categoria: 'Padaria', validade: '2024-03-05' },
-  { id: '6', nome_item: 'Maçã', quantidade: 4, quantidade_minima: 3, categoria: 'Frutas' },
-  { id: '7', nome_item: 'Azeite', quantidade: 1, quantidade_minima: 1, categoria: 'Temperos', validade: '2025-12-01' },
-];
-
-const mockShopping: ShoppingItem[] = [
-  { id: '1', nome_item: 'Feijão', quantidade: 2, status: 'pendente', gerado_automaticamente: true },
-  { id: '2', nome_item: 'Ovos', quantidade: 12, status: 'pendente', gerado_automaticamente: true },
-  { id: '3', nome_item: 'Detergente', quantidade: 2, status: 'pendente', gerado_automaticamente: false },
-  { id: '4', nome_item: 'Sabão em pó', quantidade: 1, status: 'comprado', gerado_automaticamente: false },
-];
-
-const mockMeals: MealPlan[] = [
-  { id: '1', data: '2024-03-04', refeicao: 'cafe', descricao: 'Pão com manteiga, café e frutas', ingredientes_relacionados: ['Pão de forma', 'Manteiga', 'Café', 'Maçã'] },
-  { id: '2', data: '2024-03-04', refeicao: 'almoco', descricao: 'Arroz, feijão, frango grelhado e salada', ingredientes_relacionados: ['Arroz', 'Feijão', 'Frango', 'Alface'] },
-  { id: '3', data: '2024-03-04', refeicao: 'jantar', descricao: 'Sopa de legumes', ingredientes_relacionados: ['Batata', 'Cenoura', 'Chuchu'] },
-  { id: '4', data: '2024-03-05', refeicao: 'cafe', descricao: 'Ovos mexidos com torrada', ingredientes_relacionados: ['Ovos', 'Pão de forma'] },
-  { id: '5', data: '2024-03-05', refeicao: 'almoco', descricao: 'Macarrão à bolonhesa', ingredientes_relacionados: ['Macarrão', 'Carne moída', 'Molho de tomate'] },
-  { id: '6', data: '2024-03-05', refeicao: 'jantar', descricao: 'Sanduíche natural e suco', ingredientes_relacionados: ['Pão de forma', 'Frango desfiado', 'Maçã'] },
-];
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthContext';
+import type { User, Task, RewardHistory, PantryItem, ShoppingItem, MealPlan, TaskStatus } from '@/types';
 
 interface AppContextType {
   currentUser: User | null;
@@ -58,9 +11,9 @@ interface AppContextType {
   pantry: PantryItem[];
   shopping: ShoppingItem[];
   meals: MealPlan[];
-  login: (email: string) => boolean;
-  logout: () => void;
   isMaster: boolean;
+  loading: boolean;
+  logout: () => Promise<void>;
   updateTaskStatus: (taskId: string, newStatus: TaskStatus) => void;
   toggleShoppingItem: (itemId: string) => void;
   addTask: (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => void;
@@ -76,6 +29,7 @@ interface AppContextType {
   addUser: (user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => void;
   editUser: (userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => void;
   deleteUser: (userId: string) => void;
+  refreshData: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -87,121 +41,204 @@ export const useApp = () => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user: authUser, signOut } = useAuth();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [rewards] = useState<RewardHistory[]>(mockRewards);
-  const [pantry, setPantry] = useState<PantryItem[]>(mockPantry);
-  const [shopping, setShopping] = useState<ShoppingItem[]>(mockShopping);
-  const [meals, setMeals] = useState<MealPlan[]>(mockMeals);
+  const [users, setUsers] = useState<User[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [rewards, setRewards] = useState<RewardHistory[]>([]);
+  const [pantry, setPantry] = useState<PantryItem[]>([]);
+  const [shopping, setShopping] = useState<ShoppingItem[]>([]);
+  const [meals, setMeals] = useState<MealPlan[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const isMaster = currentUser?.tipo === 'master';
 
-  const login = useCallback((email: string) => {
-    const user = users.find(u => u.email === email);
-    if (user) { setCurrentUser(user); return true; }
-    return false;
-  }, [users]);
-
-  const logout = useCallback(() => setCurrentUser(null), []);
-
-  const updateTaskStatus = useCallback((taskId: string, newStatus: TaskStatus) => {
-    setTasks(prev => {
-      const updated = prev.map(t => {
-        if (t.id !== taskId) return t;
-        const task = { ...t, status: newStatus };
-        if (newStatus === 'concluida') {
-          task.data_conclusao = new Date().toISOString().split('T')[0];
-          setUsers(u => u.map(user =>
-            user.id === t.usuario_id ? { ...user, saldo: user.saldo + t.valor_recompensa, pontos: user.pontos + 10 } : user
-          ));
-        }
-        return task;
-      });
-      return updated;
+  const fetchUsers = useCallback(async () => {
+    const { data: profiles } = await supabase.from('profiles').select('*');
+    const { data: roles } = await supabase.from('user_roles').select('*');
+    if (!profiles) return [];
+    
+    const mapped: User[] = profiles.map(p => {
+      const role = roles?.find(r => r.user_id === p.id);
+      return {
+        id: p.id,
+        nome: p.nome,
+        email: p.email,
+        tipo: (role?.role as 'master' | 'simples') || 'simples',
+        saldo: Number(p.saldo) || 0,
+        ativo: p.ativo,
+        data_criacao: p.created_at?.split('T')[0] || '',
+        pontos: p.pontos || 0,
+        nivel: (p.nivel as User['nivel']) || 'Iniciante',
+        sequencia_dias: p.sequencia_dias || 0,
+        avatar: p.avatar || undefined,
+      };
     });
+    setUsers(mapped);
+    return mapped;
   }, []);
 
-  const toggleShoppingItem = useCallback((itemId: string) => {
-    setShopping(prev => prev.map(i =>
-      i.id === itemId ? { ...i, status: i.status === 'pendente' ? 'comprado' : 'pendente' } : i
-    ));
-  }, []);
+  const fetchAll = useCallback(async () => {
+    if (!authUser) { setLoading(false); return; }
+    setLoading(true);
+    
+    const usersData = await fetchUsers();
+    const me = usersData.find(u => u.id === authUser.id) || null;
+    setCurrentUser(me);
 
-  const addTask = useCallback((task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => {
-    setTasks(prev => [...prev, {
-      ...task, id: Date.now().toString(), status: 'pendente' as const,
-      data_criacao: new Date().toISOString().split('T')[0],
-    }]);
-  }, []);
+    const [tasksRes, rewardsRes, pantryRes, shoppingRes, mealsRes] = await Promise.all([
+      supabase.from('tasks').select('*').order('data_criacao', { ascending: false }),
+      supabase.from('rewards').select('*').order('data', { ascending: false }),
+      supabase.from('pantry_items').select('*').order('categoria'),
+      supabase.from('shopping_items').select('*').order('created_at', { ascending: false }),
+      supabase.from('meal_plans').select('*').order('data'),
+    ]);
 
-  const editTask = useCallback((taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...data } : t));
-  }, []);
+    if (tasksRes.data) setTasks(tasksRes.data.map(t => ({
+      id: t.id, titulo: t.titulo, descricao: t.descricao, usuario_id: t.usuario_id,
+      frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
+      status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
+      data_conclusao: t.data_conclusao || undefined,
+    })));
+    if (rewardsRes.data) setRewards(rewardsRes.data.map(r => ({
+      id: r.id, usuario_id: r.usuario_id, valor: Number(r.valor),
+      tipo: r.tipo as 'credito' | 'debito', descricao: r.descricao, data: r.data,
+    })));
+    if (pantryRes.data) setPantry(pantryRes.data.map(p => ({
+      id: p.id, nome_item: p.nome_item, quantidade: p.quantidade,
+      quantidade_minima: p.quantidade_minima, categoria: p.categoria,
+      validade: p.validade || undefined,
+    })));
+    if (shoppingRes.data) setShopping(shoppingRes.data.map(s => ({
+      id: s.id, nome_item: s.nome_item, quantidade: s.quantidade,
+      status: s.status as 'pendente' | 'comprado', gerado_automaticamente: s.gerado_automaticamente,
+    })));
+    if (mealsRes.data) setMeals(mealsRes.data.map(m => ({
+      id: m.id, data: m.data, refeicao: m.refeicao as 'cafe' | 'almoco' | 'jantar',
+      descricao: m.descricao, ingredientes_relacionados: m.ingredientes_relacionados || [],
+    })));
 
-  const deleteTask = useCallback((taskId: string) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
-  }, []);
+    setLoading(false);
+  }, [authUser, fetchUsers]);
 
-  const addPantryItem = useCallback((item: Omit<PantryItem, 'id'>) => {
-    setPantry(prev => [...prev, { ...item, id: Date.now().toString() }]);
-  }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const editPantryItem = useCallback((itemId: string, data: Partial<Omit<PantryItem, 'id'>>) => {
-    setPantry(prev => prev.map(i => i.id === itemId ? { ...i, ...data } : i));
-  }, []);
+  const logout = useCallback(async () => {
+    await signOut();
+    setCurrentUser(null);
+  }, [signOut]);
 
-  const deletePantryItem = useCallback((itemId: string) => {
-    setPantry(prev => prev.filter(i => i.id !== itemId));
-  }, []);
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatus) => {
+    const task = tasks.find(t => t.id === taskId);
+    const updates: Record<string, unknown> = { status: newStatus };
+    if (newStatus === 'concluida') {
+      updates.data_conclusao = new Date().toISOString().split('T')[0];
+      if (task) {
+        await supabase.from('profiles').update({
+          saldo: (users.find(u => u.id === task.usuario_id)?.saldo || 0) + task.valor_recompensa,
+          pontos: (users.find(u => u.id === task.usuario_id)?.pontos || 0) + 10,
+        }).eq('id', task.usuario_id);
+        await supabase.from('rewards').insert({
+          usuario_id: task.usuario_id, valor: task.valor_recompensa,
+          tipo: 'credito', descricao: `${task.titulo} - concluída`,
+        });
+      }
+    }
+    await supabase.from('tasks').update(updates).eq('id', taskId);
+    fetchAll();
+  }, [tasks, users, fetchAll]);
 
-  const addShoppingItem = useCallback((item: { nome_item: string; quantidade: number }) => {
-    setShopping(prev => [...prev, {
-      ...item, id: Date.now().toString(), status: 'pendente' as const, gerado_automaticamente: false,
-    }]);
-  }, []);
+  const toggleShoppingItem = useCallback(async (itemId: string) => {
+    const item = shopping.find(i => i.id === itemId);
+    if (!item) return;
+    await supabase.from('shopping_items').update({
+      status: item.status === 'pendente' ? 'comprado' : 'pendente',
+    }).eq('id', itemId);
+    fetchAll();
+  }, [shopping, fetchAll]);
 
-  const editShoppingItem = useCallback((itemId: string, data: Partial<Omit<ShoppingItem, 'id'>>) => {
-    setShopping(prev => prev.map(i => i.id === itemId ? { ...i, ...data } : i));
-  }, []);
+  const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => {
+    await supabase.from('tasks').insert({
+      titulo: task.titulo, descricao: task.descricao, usuario_id: task.usuario_id,
+      frequencia: task.frequencia, valor_recompensa: task.valor_recompensa,
+      data_limite: task.data_limite, created_by: authUser?.id,
+    });
+    fetchAll();
+  }, [authUser, fetchAll]);
 
-  const deleteShoppingItem = useCallback((itemId: string) => {
-    setShopping(prev => prev.filter(i => i.id !== itemId));
-  }, []);
+  const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => {
+    await supabase.from('tasks').update(data).eq('id', taskId);
+    fetchAll();
+  }, [fetchAll]);
 
-  const addMeal = useCallback((meal: Omit<MealPlan, 'id'>) => {
-    setMeals(prev => [...prev, { ...meal, id: Date.now().toString() }]);
-  }, []);
+  const deleteTask = useCallback(async (taskId: string) => {
+    await supabase.from('tasks').delete().eq('id', taskId);
+    fetchAll();
+  }, [fetchAll]);
 
-  const addUser = useCallback((user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
-    setUsers(prev => [...prev, {
-      ...user,
-      id: Date.now().toString(),
-      data_criacao: new Date().toISOString().split('T')[0],
-      pontos: 0,
-      nivel: 'Iniciante' as const,
-      sequencia_dias: 0,
-    }]);
-  }, []);
+  const addPantryItem = useCallback(async (item: Omit<PantryItem, 'id'>) => {
+    await supabase.from('pantry_items').insert(item);
+    fetchAll();
+  }, [fetchAll]);
 
-  const editUser = useCallback((userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
-  }, []);
+  const editPantryItem = useCallback(async (itemId: string, data: Partial<Omit<PantryItem, 'id'>>) => {
+    await supabase.from('pantry_items').update(data).eq('id', itemId);
+    fetchAll();
+  }, [fetchAll]);
 
-  const deleteUser = useCallback((userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    setTasks(prev => prev.filter(t => t.usuario_id !== userId));
-  }, []);
+  const deletePantryItem = useCallback(async (itemId: string) => {
+    await supabase.from('pantry_items').delete().eq('id', itemId);
+    fetchAll();
+  }, [fetchAll]);
+
+  const addShoppingItem = useCallback(async (item: { nome_item: string; quantidade: number }) => {
+    await supabase.from('shopping_items').insert(item);
+    fetchAll();
+  }, [fetchAll]);
+
+  const editShoppingItem = useCallback(async (itemId: string, data: Partial<Omit<ShoppingItem, 'id'>>) => {
+    await supabase.from('shopping_items').update(data).eq('id', itemId);
+    fetchAll();
+  }, [fetchAll]);
+
+  const deleteShoppingItem = useCallback(async (itemId: string) => {
+    await supabase.from('shopping_items').delete().eq('id', itemId);
+    fetchAll();
+  }, [fetchAll]);
+
+  const addMeal = useCallback(async (meal: Omit<MealPlan, 'id'>) => {
+    await supabase.from('meal_plans').insert(meal);
+    fetchAll();
+  }, [fetchAll]);
+
+  const addUser = useCallback(async (_user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
+    // Users are now created through signup - this is a placeholder
+    fetchAll();
+  }, [fetchAll]);
+
+  const editUser = useCallback(async (userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => {
+    const { tipo, ...profileData } = data as any;
+    if (Object.keys(profileData).length > 0) {
+      await supabase.from('profiles').update(profileData).eq('id', userId);
+    }
+    fetchAll();
+  }, [fetchAll]);
+
+  const deleteUser = useCallback(async (userId: string) => {
+    // Only delete profile/roles - can't delete auth user from client
+    await supabase.from('user_roles').delete().eq('user_id', userId);
+    await supabase.from('profiles').update({ ativo: false }).eq('id', userId);
+    fetchAll();
+  }, [fetchAll]);
 
   return (
     <AppContext.Provider value={{
       currentUser, users, tasks, rewards, pantry, shopping, meals,
-      login, logout, isMaster, updateTaskStatus, toggleShoppingItem,
+      isMaster, loading, logout, updateTaskStatus, toggleShoppingItem,
       addTask, editTask, deleteTask,
       addPantryItem, editPantryItem, deletePantryItem,
       addShoppingItem, editShoppingItem, deleteShoppingItem,
-      addMeal,
-      addUser, editUser, deleteUser,
+      addMeal, addUser, editUser, deleteUser, refreshData: fetchAll,
     }}>
       {children}
     </AppContext.Provider>

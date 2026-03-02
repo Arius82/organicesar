@@ -14,16 +14,231 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      meal_plans: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          ingredientes_relacionados: string[]
+          refeicao: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          descricao?: string
+          id?: string
+          ingredientes_relacionados?: string[]
+          refeicao: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          ingredientes_relacionados?: string[]
+          refeicao?: string
+        }
+        Relationships: []
+      }
+      pantry_items: {
+        Row: {
+          categoria: string
+          created_at: string
+          id: string
+          nome_item: string
+          quantidade: number
+          quantidade_minima: number
+          validade: string | null
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          nome_item: string
+          quantidade?: number
+          quantidade_minima?: number
+          validade?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          nome_item?: string
+          quantidade?: number
+          quantidade_minima?: number
+          validade?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          ativo: boolean
+          avatar: string | null
+          created_at: string
+          email: string
+          id: string
+          nivel: string
+          nome: string
+          pontos: number
+          saldo: number
+          sequencia_dias: number
+        }
+        Insert: {
+          ativo?: boolean
+          avatar?: string | null
+          created_at?: string
+          email: string
+          id: string
+          nivel?: string
+          nome: string
+          pontos?: number
+          saldo?: number
+          sequencia_dias?: number
+        }
+        Update: {
+          ativo?: boolean
+          avatar?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          nivel?: string
+          nome?: string
+          pontos?: number
+          saldo?: number
+          sequencia_dias?: number
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          data: string
+          descricao: string
+          id: string
+          tipo: string
+          usuario_id: string
+          valor: number
+        }
+        Insert: {
+          data?: string
+          descricao?: string
+          id?: string
+          tipo: string
+          usuario_id: string
+          valor: number
+        }
+        Update: {
+          data?: string
+          descricao?: string
+          id?: string
+          tipo?: string
+          usuario_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      shopping_items: {
+        Row: {
+          created_at: string
+          gerado_automaticamente: boolean
+          id: string
+          nome_item: string
+          quantidade: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          gerado_automaticamente?: boolean
+          id?: string
+          nome_item: string
+          quantidade?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          gerado_automaticamente?: boolean
+          id?: string
+          nome_item?: string
+          quantidade?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_by: string | null
+          data_conclusao: string | null
+          data_criacao: string
+          data_limite: string | null
+          descricao: string
+          frequencia: string
+          id: string
+          status: string
+          titulo: string
+          usuario_id: string
+          valor_recompensa: number
+        }
+        Insert: {
+          created_by?: string | null
+          data_conclusao?: string | null
+          data_criacao?: string
+          data_limite?: string | null
+          descricao?: string
+          frequencia?: string
+          id?: string
+          status?: string
+          titulo: string
+          usuario_id: string
+          valor_recompensa?: number
+        }
+        Update: {
+          created_by?: string | null
+          data_conclusao?: string | null
+          data_criacao?: string
+          data_limite?: string | null
+          descricao?: string
+          frequencia?: string
+          id?: string
+          status?: string
+          titulo?: string
+          usuario_id?: string
+          valor_recompensa?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "master" | "simples"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +365,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["master", "simples"],
+    },
   },
 } as const

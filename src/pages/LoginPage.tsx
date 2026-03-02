@@ -1,29 +1,29 @@
 import { useState } from 'react';
-import { useApp } from '@/context/AppContext';
-import { Mail, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Mail, Lock, ArrowRight, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Link } from 'react-router-dom';
 import logo from '@/assets/logo.png';
 
 const LoginPage = () => {
-  const { login, users } = useApp();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!login(email)) {
-      setError('Email não encontrado. Tente um dos emails abaixo.');
-    }
-  };
-
-  const quickLogin = (userEmail: string) => {
-    login(userEmail);
+    setLoading(true);
+    setError('');
+    const { error } = await signIn(email, password);
+    if (error) setError(error);
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/10 p-4 relative overflow-hidden">
-      {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-accent/8 blur-3xl" />
@@ -47,34 +47,38 @@ const LoginPage = () => {
                   value={email}
                   onChange={e => { setEmail(e.target.value); setError(''); }}
                   className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(''); }}
+                  className="pl-10"
+                  required
+                  minLength={6}
                 />
               </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full gradient-primary text-primary-foreground">
-              Entrar <ArrowRight className="w-4 h-4 ml-2" />
+            <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'} <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </form>
 
-          <div className="border-t border-border pt-4">
-            <p className="text-xs text-muted-foreground mb-3 text-center">Acesso rápido (demo)</p>
-            <div className="grid grid-cols-2 gap-2">
-              {users.map(u => (
-                <button
-                  key={u.id}
-                  onClick={() => quickLogin(u.email)}
-                  className="flex items-center gap-2 p-2.5 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-left"
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${u.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                    {u.nome[0]}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{u.nome}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{u.tipo}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center justify-between text-sm">
+            <Link to="/forgot-password" className="text-primary hover:underline">
+              Esqueci a senha
+            </Link>
+            <Link to="/signup" className="text-primary hover:underline flex items-center gap-1">
+              <UserPlus className="w-3.5 h-3.5" /> Criar conta
+            </Link>
           </div>
         </div>
       </div>

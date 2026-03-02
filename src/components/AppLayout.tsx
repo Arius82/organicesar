@@ -6,6 +6,7 @@ import {
   UtensilsCrossed, BarChart3, Trophy, LogOut, Menu, X, ChevronRight
 } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
+import ThemeToggle from '@/components/ThemeToggle';
 import logo from '@/assets/logo.png';
 
 const navItems = [
@@ -29,12 +30,10 @@ const AppLayout = () => {
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-background via-background to-primary/3">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 gradient-sidebar flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-5 flex items-center gap-3">
           <img src={logo} alt="OrganiCésar" className="w-9 h-9 rounded-xl object-contain" />
@@ -85,7 +84,6 @@ const AppLayout = () => {
         </div>
       </aside>
 
-      {/* Main */}
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border px-4 lg:px-6 h-14 flex items-center gap-4">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-foreground">
@@ -95,6 +93,7 @@ const AppLayout = () => {
             {filteredNav.find(n => n.path === location.pathname)?.label || 'Dashboard'}
           </h2>
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <NotificationBell />
             {currentUser?.tipo === 'simples' && (
               <div className="gradient-reward text-reward-foreground text-xs font-bold px-3 py-1 rounded-full">
