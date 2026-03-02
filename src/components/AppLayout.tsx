@@ -3,9 +3,10 @@ import { useApp } from '@/context/AppContext';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, CheckSquare, Users, Package, ShoppingCart,
-  UtensilsCrossed, BarChart3, Trophy, LogOut, Leaf, Menu, X, ChevronRight
+  UtensilsCrossed, BarChart3, Trophy, LogOut, Menu, X, ChevronRight
 } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
+import logo from '@/assets/logo.png';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, masterOnly: false },
@@ -27,7 +28,7 @@ const AppLayout = () => {
   const filteredNav = navItems.filter(item => !item.masterOnly || isMaster);
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-gradient-to-br from-background via-background to-primary/3">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -36,9 +37,7 @@ const AppLayout = () => {
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 gradient-sidebar flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-sidebar-primary/20 flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-sidebar-primary" />
-          </div>
+          <img src={logo} alt="OrganiCésar" className="w-9 h-9 rounded-xl object-contain" />
           <h1 className="font-display font-bold text-lg text-sidebar-foreground">OrganiCésar</h1>
           <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden text-sidebar-foreground/60">
             <X className="w-5 h-5" />

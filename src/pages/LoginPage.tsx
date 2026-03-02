@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Leaf, Mail, ArrowRight } from 'lucide-react';
+import { Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import logo from '@/assets/logo.png';
 
 const LoginPage = () => {
   const { login, users } = useApp();
@@ -21,14 +22,17 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/10 p-4 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-accent/8 blur-3xl" />
+        <div className="absolute top-1/3 left-1/4 w-64 h-64 rounded-full bg-info/5 blur-3xl" />
+      </div>
+      <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary mb-4">
-            <Leaf className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-display font-bold text-foreground">OrganiCésar</h1>
-          <p className="text-muted-foreground mt-2">Gestão doméstica inteligente</p>
+          <img src={logo} alt="OrganiCésar" className="w-32 h-32 mx-auto mb-2 object-contain drop-shadow-lg" />
+          <p className="text-muted-foreground mt-1">Gestão Doméstica Inteligente</p>
         </div>
 
         <div className="glass-card rounded-2xl p-6 space-y-6">

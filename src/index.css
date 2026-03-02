@@ -121,4 +121,9 @@
   .gradient-sidebar {
     background: linear-gradient(180deg, hsl(152 30% 15%), hsl(152 35% 10%));
   }
+
+  .bg-pattern {
+    background-image: radial-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
 }
