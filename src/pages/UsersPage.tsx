@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Shield, User as UserIcon, Plus, Pencil, Trash2, Mail, Star, Flame, Search } from 'lucide-react';
+import { Shield, User as UserIcon, Plus, Pencil, Trash2, Mail, Star, Flame, Search, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useNotifications } from '@/context/NotificationContext';
+import InviteMemberDialog from '@/components/InviteMemberDialog';
 import type { User, UserType } from '@/types';
 
 interface UserFormData {
@@ -61,6 +62,7 @@ const UsersPage = () => {
   const { users, currentUser, isMaster, addUser, editUser, deleteUser } = useApp();
   const { addNotification } = useNotifications();
   const [showAdd, setShowAdd] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -111,9 +113,14 @@ const UsersPage = () => {
           <Input placeholder="Buscar usuário..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         {isMaster && (
-          <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => setShowAdd(true)}>
-            <Plus className="w-4 h-4" /> Novo Usuário
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-1.5" onClick={() => setShowInvite(true)}>
+              <Send className="w-4 h-4" /> Convidar
+            </Button>
+            <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => setShowAdd(true)}>
+              <Plus className="w-4 h-4" /> Novo Usuário
+            </Button>
+          </div>
         )}
       </div>
 
@@ -180,6 +187,8 @@ const UsersPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <InviteMemberDialog open={showInvite} onOpenChange={setShowInvite} />
     </div>
   );
 };
