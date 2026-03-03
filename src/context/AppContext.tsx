@@ -221,6 +221,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (Object.keys(profileData).length > 0) {
       await supabase.from('profiles').update(profileData).eq('id', userId);
     }
+    // Update role if tipo changed
+    if (tipo) {
+      await supabase.from('user_roles').update({ role: tipo }).eq('user_id', userId);
+    }
     fetchAll();
   }, [fetchAll]);
 
