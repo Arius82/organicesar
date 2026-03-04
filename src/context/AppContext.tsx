@@ -79,44 +79,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const fetchAll = useCallback(async () => {
-    if (!authUser) { setLoading(false); return; }
+    if (!authUser) { console.log('[AppContext] No authUser'); setLoading(false); return; }
+    console.log('[AppContext] fetchAll for:', authUser.id);
     setLoading(true);
     
-    const usersData = await fetchUsers();
-    const me = usersData.find(u => u.id === authUser.id) || null;
-    setCurrentUser(me);
+    try {
+      const usersData = await fetchUsers();
+      console.log('[AppContext] users:', usersData.length);
+      const me = usersData.find(u => u.id === authUser.id) || null;
+      console.log('[AppContext] me:', me?.nome);
+      setCurrentUser(me);
 
-    const [tasksRes, rewardsRes, pantryRes, shoppingRes, mealsRes] = await Promise.all([
-      supabase.from('tasks').select('*').order('data_criacao', { ascending: false }),
-      supabase.from('rewards').select('*').order('data', { ascending: false }),
-      supabase.from('pantry_items').select('*').order('categoria'),
-      supabase.from('shopping_items').select('*').order('created_at', { ascending: false }),
-      supabase.from('meal_plans').select('*').order('data'),
-    ]);
+      const [tasksRes, rewardsRes, pantryRes, shoppingRes, mealsRes] = await Promise.all([
+        supabase.from('tasks').select('*').order('data_criacao', { ascending: false }),
+        supabase.from('rewards').select('*').order('data', { ascending: false }),
+        supabase.from('pantry_items').select('*').order('categoria'),
+        supabase.from('shopping_items').select('*').order('created_at', { ascending: false }),
+        supabase.from('meal_plans').select('*').order('data'),
+      ]);
+      console.log('[AppContext] data loaded, tasks:', tasksRes.data?.length, 'error:', tasksRes.error?.message);
 
-    if (tasksRes.data) setTasks(tasksRes.data.map(t => ({
-      id: t.id, titulo: t.titulo, descricao: t.descricao, usuario_id: t.usuario_id,
-      frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
-      status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
-      data_conclusao: t.data_conclusao || undefined,
-    })));
-    if (rewardsRes.data) setRewards(rewardsRes.data.map(r => ({
-      id: r.id, usuario_id: r.usuario_id, valor: Number(r.valor),
-      tipo: r.tipo as 'credito' | 'debito', descricao: r.descricao, data: r.data,
-    })));
-    if (pantryRes.data) setPantry(pantryRes.data.map(p => ({
-      id: p.id, nome_item: p.nome_item, quantidade: p.quantidade,
-      quantidade_minima: p.quantidade_minima, categoria: p.categoria,
-      validade: p.validade || undefined,
-    })));
-    if (shoppingRes.data) setShopping(shoppingRes.data.map(s => ({
-      id: s.id, nome_item: s.nome_item, quantidade: s.quantidade,
-      status: s.status as 'pendente' | 'comprado', gerado_automaticamente: s.gerado_automaticamente,
-    })));
-    if (mealsRes.data) setMeals(mealsRes.data.map(m => ({
-      id: m.id, data: m.data, refeicao: m.refeicao as 'cafe' | 'almoco' | 'jantar',
-      descricao: m.descricao, ingredientes_relacionados: m.ingredientes_relacionados || [],
-    })));
+      if (tasksRes.data) setTasks(tasksRes.data.map(t => ({
+        id: t.id, titulo: t.titulo, descricao: t.descricao, usuario_id: t.usuario_id,
+        frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
+        status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
+        data_conclusao: t.data_conclusao || undefined,
+      })));
+      if (rewardsRes.data) setRewards(rewardsRes.data.map(r => ({
+        id: r.id, usuario_id: r.usuario_id, valor: Number(r.valor),
+        tipo: r.tipo as 'credito' | 'debito', descricao: r.descricao, data: r.data,
+      })));
+      if (pantryRes.data) setPantry(pantryRes.data.map(p => ({
+        id: p.id, nome_item: p.nome_item, quantidade: p.quantidade,
+        quantidade_minima: p.quantidade_minima, categoria: p.categoria,
+        validade: p.validade || undefined,
+      })));
+      if (shoppingRes.data) setShopping(shoppingRes.data.map(s => ({
+        id: s.id, nome_item: s.nome_item, quantidade: s.quantidade,
+        status: s.status as 'pendente' | 'comprado', gerado_automaticamente: s.gerado_automaticamente,
+      })));
+      if (mealsRes.data) setMeals(mealsRes.data.map(m => ({
+        id: m.id, data: m.data, refeicao: m.refeicao as 'cafe' | 'almoco' | 'jantar',
+        descricao: m.descricao, ingredientes_relacionados: m.ingredientes_relacionados || [],
+      })));
+    } catch (err) {
+      console.error('[AppContext] fetchAll error:', err);
+    }
 
     setLoading(false);
   }, [authUser, fetchUsers]);
