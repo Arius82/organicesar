@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, CheckSquare, Users, Package, ShoppingCart,
-  UtensilsCrossed, BarChart3, Trophy, LogOut, Menu, X, ChevronRight
+  UtensilsCrossed, BarChart3, Trophy, LogOut, Menu, X, ChevronRight, UserCircle
 } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -74,6 +74,13 @@ const AppLayout = () => {
               <p className="text-xs text-sidebar-foreground/50 capitalize">{currentUser?.tipo}</p>
             </div>
           </div>
+          <button
+            onClick={() => { navigate('/perfil'); setSidebarOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+          >
+            <UserCircle className="w-4 h-4" />
+            Meu Perfil
+          </button>
           <button
             onClick={logout}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"

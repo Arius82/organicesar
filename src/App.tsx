@@ -20,6 +20,7 @@ import ShoppingListPage from "./pages/ShoppingListPage";
 import MealPlannerPage from "./pages/MealPlannerPage";
 import ReportsPage from "./pages/ReportsPage";
 import RewardsPage from "./pages/RewardsPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const AppContent = () => {
         <Route path="/cardapio" element={<MealPlannerPage />} />
         <Route path="/relatorios" element={isMaster ? <ReportsPage /> : <Navigate to="/dashboard" />} />
         <Route path="/recompensas" element={<RewardsPage />} />
+        <Route path="/perfil" element={<ProfilePage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<NotFound />} />
       </Route>
