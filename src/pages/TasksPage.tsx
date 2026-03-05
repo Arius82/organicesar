@@ -209,6 +209,7 @@ const TasksPage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </PageTransition>
   );
 };
 
