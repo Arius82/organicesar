@@ -131,6 +131,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!authUser) return;
+
+    const channel = supabase
+      .channel('app-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_plans' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAll())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [authUser, fetchAll]);
+
   const logout = useCallback(async () => {
     await signOut();
     setCurrentUser(null);
