@@ -63,6 +63,7 @@ const TasksPage = () => {
   const handleDelete = (id: string) => { deleteTask(id); setDeleteConfirm(null); };
 
   return (
+    <PageTransition>
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
