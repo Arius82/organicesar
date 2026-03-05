@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import PageTransition from '@/components/PageTransition';
 import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, Pencil, Trash2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
