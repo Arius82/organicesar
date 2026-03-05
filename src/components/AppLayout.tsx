@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CheckSquare, Users, Package, ShoppingCart,
   UtensilsCrossed, BarChart3, Trophy, LogOut, Menu, X, ChevronRight, UserCircle
@@ -109,9 +110,11 @@ const AppLayout = () => {
             )}
           </div>
         </header>
-        <div className="p-4 lg:p-6 animate-fade-in">
-          <Outlet />
-        </div>
+        <AnimatePresence mode="wait">
+          <div key={location.pathname} className="p-4 lg:p-6">
+            <Outlet />
+          </div>
+        </AnimatePresence>
       </main>
     </div>
   );
