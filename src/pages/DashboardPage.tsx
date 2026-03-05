@@ -1,5 +1,6 @@
 import { useApp } from '@/context/AppContext';
 import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap } from 'lucide-react';
+import PageTransition from '@/components/PageTransition';
 
 const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
   icon: React.ElementType; label: string; value: string | number; subtitle?: string;
@@ -38,6 +39,7 @@ const DashboardPage = () => {
   const nivelEmoji = { 'Iniciante': '🌱', 'Organizado': '🌿', 'Mestre da Casa': '🌳' };
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       {/* Welcome */}
       <div className="glass-card rounded-2xl p-6">
@@ -154,6 +156,7 @@ const DashboardPage = () => {
         </div>
       )}
     </div>
+    </PageTransition>
   );
 };
 

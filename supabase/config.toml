@@ -1,1 +1,7 @@
 project_id = "pywccymjgthtrwgccvuv"
+
+[functions.invite-member]
+verify_jwt = false
+
+[functions.suggest-meals]
+verify_jwt = false

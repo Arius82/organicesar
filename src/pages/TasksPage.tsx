@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import PageTransition from '@/components/PageTransition';
 import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, Pencil, Trash2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -62,6 +63,7 @@ const TasksPage = () => {
   const handleDelete = (id: string) => { deleteTask(id); setDeleteConfirm(null); };
 
   return (
+    <PageTransition>
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -207,6 +209,7 @@ const TasksPage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </PageTransition>
   );
 };
 
