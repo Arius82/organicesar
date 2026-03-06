@@ -238,6 +238,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchAll();
   }, [fetchAll]);
 
+  const editMeal = useCallback(async (mealId: string, data: Partial<Omit<MealPlan, 'id'>>) => {
+    await supabase.from('meal_plans').update(data).eq('id', mealId);
+    fetchAll();
+  }, [fetchAll]);
+
+  const deleteMeal = useCallback(async (mealId: string) => {
+    await supabase.from('meal_plans').delete().eq('id', mealId);
+    fetchAll();
+  }, [fetchAll]);
+
   const addUser = useCallback(async (_user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
     // Users are now created through signup - this is a placeholder
     fetchAll();
