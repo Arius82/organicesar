@@ -19,7 +19,7 @@ const CreateTaskDialog = () => {
     valor_recompensa: '', data_limite: '',
   });
 
-  const simpleUsers = users.filter(u => u.tipo === 'simples');
+  const activeUsers = users.filter(u => u.ativo);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +64,7 @@ const CreateTaskDialog = () => {
               <Select value={form.usuario_id} onValueChange={v => setForm(f => ({ ...f, usuario_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {simpleUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  {activeUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
