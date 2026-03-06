@@ -64,7 +64,7 @@ const CreateTaskDialog = () => {
               <Select value={form.usuario_id} onValueChange={v => setForm(f => ({ ...f, usuario_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {simpleUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  {activeUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
