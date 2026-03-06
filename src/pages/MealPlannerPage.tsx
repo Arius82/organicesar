@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Coffee, Sun, Moon, Sparkles, Loader2, ChefHat } from 'lucide-react';
+import { Coffee, Sun, Moon, Sparkles, Loader2, ChefHat, Pencil, Trash2, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AddMealDialog from '@/components/AddMealDialog';
 import PageTransition from '@/components/PageTransition';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/context/NotificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const mealConfig = {
   cafe: { label: 'Café da Manhã', icon: Coffee, emoji: '☕' },
@@ -24,12 +29,14 @@ interface MealSuggestion {
 }
 
 const MealPlannerPage = () => {
-  const { meals, pantry, isMaster, addMeal } = useApp();
+  const { meals, pantry, isMaster, addMeal, editMeal, deleteMeal } = useApp();
   const { addNotification } = useNotifications();
   const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [aiMealType, setAiMealType] = useState<string>('almoco');
   const [aiDate, setAiDate] = useState(new Date().toISOString().split('T')[0]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ descricao: '', ingredientes: '' });
 
   const grouped = meals.reduce((acc, meal) => {
     if (!acc[meal.data]) acc[meal.data] = [];
@@ -69,6 +76,32 @@ const MealPlannerPage = () => {
     });
     addNotification(`"${s.title}" adicionado ao cardápio!`, 'success');
     setSuggestions(prev => prev.filter(x => x !== s));
+  };
+
+  const startEdit = (meal: typeof meals[0]) => {
+    setEditingId(meal.id);
+    setEditForm({
+      descricao: meal.descricao,
+      ingredientes: meal.ingredientes_relacionados.join(', '),
+    });
+  };
+
+  const saveEdit = (mealId: string) => {
+    const ingredientes = editForm.ingredientes
+      .split(',')
+      .map(i => i.trim())
+      .filter(Boolean);
+    editMeal(mealId, {
+      descricao: editForm.descricao,
+      ingredientes_relacionados: ingredientes,
+    });
+    setEditingId(null);
+    addNotification('Refeição atualizada!', 'success');
+  };
+
+  const handleDelete = (mealId: string) => {
+    deleteMeal(mealId);
+    addNotification('Refeição removida do cardápio', 'success');
   };
 
   return (
@@ -173,6 +206,7 @@ const MealPlannerPage = () => {
                 {(['cafe', 'almoco', 'jantar'] as const).map(type => {
                   const meal = dayMeals.find(m => m.refeicao === type);
                   const cfg = mealConfig[type];
+                  const isEditing = meal && editingId === meal.id;
                   return (
                     <motion.div
                       key={type}
@@ -180,19 +214,74 @@ const MealPlannerPage = () => {
                       transition={{ type: 'spring', stiffness: 300 }}
                       className="glass-card rounded-xl p-4"
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">{cfg.emoji}</span>
-                        <h4 className="text-sm font-medium text-foreground">{cfg.label}</h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{cfg.emoji}</span>
+                          <h4 className="text-sm font-medium text-foreground">{cfg.label}</h4>
+                        </div>
+                        {meal && !isEditing && (
+                          <div className="flex items-center gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(meal)}>
+                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-7 w-7">
+                                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir refeição?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja remover "{meal.descricao}" do cardápio?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(meal.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </div>
                       {meal ? (
-                        <>
-                          <p className="text-sm text-foreground">{meal.descricao}</p>
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {meal.ingredientes_relacionados.map(ing => (
-                              <span key={ing} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{ing}</span>
-                            ))}
+                        isEditing ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editForm.descricao}
+                              onChange={e => setEditForm(f => ({ ...f, descricao: e.target.value }))}
+                              className="text-sm min-h-[60px]"
+                              placeholder="Descrição da refeição"
+                            />
+                            <Input
+                              value={editForm.ingredientes}
+                              onChange={e => setEditForm(f => ({ ...f, ingredientes: e.target.value }))}
+                              className="text-sm"
+                              placeholder="Ingredientes separados por vírgula"
+                            />
+                            <div className="flex gap-1.5 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-7 px-2 text-xs">
+                                <X className="w-3.5 h-3.5 mr-1" /> Cancelar
+                              </Button>
+                              <Button size="sm" onClick={() => saveEdit(meal.id)} className="h-7 px-2 text-xs gradient-primary text-primary-foreground">
+                                <Check className="w-3.5 h-3.5 mr-1" /> Salvar
+                              </Button>
+                            </div>
                           </div>
-                        </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-foreground">{meal.descricao}</p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {meal.ingredientes_relacionados.map(ing => (
+                                <span key={ing} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{ing}</span>
+                              ))}
+                            </div>
+                          </>
+                        )
                       ) : (
                         <p className="text-sm text-muted-foreground italic">Não planejado</p>
                       )}

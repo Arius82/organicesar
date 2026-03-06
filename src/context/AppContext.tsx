@@ -26,6 +26,8 @@ interface AppContextType {
   editShoppingItem: (itemId: string, data: Partial<Omit<ShoppingItem, 'id'>>) => void;
   deleteShoppingItem: (itemId: string) => void;
   addMeal: (meal: Omit<MealPlan, 'id'>) => void;
+  editMeal: (mealId: string, data: Partial<Omit<MealPlan, 'id'>>) => void;
+  deleteMeal: (mealId: string) => void;
   addUser: (user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => void;
   editUser: (userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => void;
   deleteUser: (userId: string) => void;
@@ -236,6 +238,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchAll();
   }, [fetchAll]);
 
+  const editMeal = useCallback(async (mealId: string, data: Partial<Omit<MealPlan, 'id'>>) => {
+    await supabase.from('meal_plans').update(data).eq('id', mealId);
+    fetchAll();
+  }, [fetchAll]);
+
+  const deleteMeal = useCallback(async (mealId: string) => {
+    await supabase.from('meal_plans').delete().eq('id', mealId);
+    fetchAll();
+  }, [fetchAll]);
+
   const addUser = useCallback(async (_user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
     // Users are now created through signup - this is a placeholder
     fetchAll();
@@ -267,7 +279,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addTask, editTask, deleteTask,
       addPantryItem, editPantryItem, deletePantryItem,
       addShoppingItem, editShoppingItem, deleteShoppingItem,
-      addMeal, addUser, editUser, deleteUser, refreshData: fetchAll,
+      addMeal, editMeal, deleteMeal, addUser, editUser, deleteUser, refreshData: fetchAll,
     }}>
       {children}
     </AppContext.Provider>
