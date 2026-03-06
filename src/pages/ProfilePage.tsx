@@ -128,11 +128,27 @@ const ProfilePage = () => {
             <Input id="nome" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="avatar" className="flex items-center gap-2">
-              <Camera className="w-4 h-4" /> URL do Avatar
+            <Label className="flex items-center gap-2">
+              <Camera className="w-4 h-4" /> Avatar
             </Label>
-            <Input id="avatar" value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="https://exemplo.com/foto.jpg" />
-            <p className="text-xs text-muted-foreground">Cole o link de uma imagem para usar como avatar</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setAvatarPickerOpen(true)}
+            >
+              {avatarUrl ? (
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={avatarUrl} />
+                    <AvatarFallback>?</AvatarFallback>
+                  </Avatar>
+                  <span>Avatar selecionado</span>
+                </div>
+              ) : (
+                <span>Escolher avatar</span>
+              )}
+            </Button>
           </div>
           <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full">
             <Save className="w-4 h-4 mr-2" />
