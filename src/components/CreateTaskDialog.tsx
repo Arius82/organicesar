@@ -19,7 +19,7 @@ const CreateTaskDialog = () => {
     valor_recompensa: '', data_limite: '',
   });
 
-  const simpleUsers = users.filter(u => u.tipo === 'simples');
+  const activeUsers = users.filter(u => u.ativo);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
