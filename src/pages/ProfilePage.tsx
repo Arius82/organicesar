@@ -180,6 +180,13 @@ const ProfilePage = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <AvatarPicker
+        open={avatarPickerOpen}
+        onOpenChange={setAvatarPickerOpen}
+        currentAvatar={avatarUrl}
+        onSelect={(url) => setAvatarUrl(url)}
+      />
     </div>
   );
 };
