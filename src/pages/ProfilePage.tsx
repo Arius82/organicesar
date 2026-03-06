@@ -19,6 +19,7 @@ const ProfilePage = () => {
 
   const [nome, setNome] = useState(currentUser?.nome || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar || '');
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -75,12 +76,17 @@ const ProfilePage = () => {
       {/* Stats Card */}
       <Card className="glass-card overflow-hidden">
         <div className="gradient-primary p-6 flex items-center gap-5">
-          <Avatar className="w-20 h-20 border-4 border-primary-foreground/20">
-            <AvatarImage src={currentUser.avatar} />
-            <AvatarFallback className="text-2xl font-bold bg-primary-foreground/20 text-primary-foreground">
-              {currentUser.nome[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative group cursor-pointer" onClick={() => setAvatarPickerOpen(true)}>
+            <Avatar className="w-20 h-20 border-4 border-primary-foreground/20">
+              <AvatarImage src={avatarUrl || currentUser.avatar} />
+              <AvatarFallback className="text-2xl font-bold bg-primary-foreground/20 text-primary-foreground">
+                {currentUser.nome[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Pencil className="w-5 h-5 text-white" />
+            </div>
+          </div>
           <div className="text-primary-foreground">
             <h2 className="font-display text-2xl font-bold">{currentUser.nome}</h2>
             <p className="text-primary-foreground/70 text-sm">{currentUser.email}</p>
