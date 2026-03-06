@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { User, Camera, Lock, Save, Trophy, Flame, Star } from 'lucide-react';
+import { User, Camera, Lock, Save, Trophy, Flame, Star, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import AvatarPicker from '@/components/AvatarPicker';
 
 const ProfilePage = () => {
   const { currentUser, refreshData } = useApp();
@@ -18,6 +19,7 @@ const ProfilePage = () => {
 
   const [nome, setNome] = useState(currentUser?.nome || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar || '');
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -74,12 +76,17 @@ const ProfilePage = () => {
       {/* Stats Card */}
       <Card className="glass-card overflow-hidden">
         <div className="gradient-primary p-6 flex items-center gap-5">
-          <Avatar className="w-20 h-20 border-4 border-primary-foreground/20">
-            <AvatarImage src={currentUser.avatar} />
-            <AvatarFallback className="text-2xl font-bold bg-primary-foreground/20 text-primary-foreground">
-              {currentUser.nome[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative group cursor-pointer" onClick={() => setAvatarPickerOpen(true)}>
+            <Avatar className="w-20 h-20 border-4 border-primary-foreground/20">
+              <AvatarImage src={avatarUrl || currentUser.avatar} />
+              <AvatarFallback className="text-2xl font-bold bg-primary-foreground/20 text-primary-foreground">
+                {currentUser.nome[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Pencil className="w-5 h-5 text-white" />
+            </div>
+          </div>
           <div className="text-primary-foreground">
             <h2 className="font-display text-2xl font-bold">{currentUser.nome}</h2>
             <p className="text-primary-foreground/70 text-sm">{currentUser.email}</p>
@@ -121,11 +128,27 @@ const ProfilePage = () => {
             <Input id="nome" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="avatar" className="flex items-center gap-2">
-              <Camera className="w-4 h-4" /> URL do Avatar
+            <Label className="flex items-center gap-2">
+              <Camera className="w-4 h-4" /> Avatar
             </Label>
-            <Input id="avatar" value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="https://exemplo.com/foto.jpg" />
-            <p className="text-xs text-muted-foreground">Cole o link de uma imagem para usar como avatar</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setAvatarPickerOpen(true)}
+            >
+              {avatarUrl ? (
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={avatarUrl} />
+                    <AvatarFallback>?</AvatarFallback>
+                  </Avatar>
+                  <span>Avatar selecionado</span>
+                </div>
+              ) : (
+                <span>Escolher avatar</span>
+              )}
+            </Button>
           </div>
           <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full">
             <Save className="w-4 h-4 mr-2" />
@@ -157,6 +180,13 @@ const ProfilePage = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <AvatarPicker
+        open={avatarPickerOpen}
+        onOpenChange={setAvatarPickerOpen}
+        currentAvatar={avatarUrl}
+        onSelect={(url) => setAvatarUrl(url)}
+      />
     </div>
   );
 };
