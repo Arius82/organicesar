@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { User, Camera, Lock, Save, Trophy, Flame, Star } from 'lucide-react';
+import { User, Camera, Lock, Save, Trophy, Flame, Star, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import AvatarPicker from '@/components/AvatarPicker';
 
 const ProfilePage = () => {
   const { currentUser, refreshData } = useApp();
