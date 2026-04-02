@@ -187,6 +187,7 @@ const UsersPage = () => {
 
       <InviteMemberDialog open={showInvite} onOpenChange={setShowInvite} />
     </div>
+    </PageTransition>
   );
 };
 
