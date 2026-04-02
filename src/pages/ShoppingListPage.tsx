@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import PageTransition from '@/components/PageTransition';
 import { ShoppingCart, Check, Zap, Pencil, Trash2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -67,6 +68,7 @@ const ShoppingListPage = () => {
   );
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -138,6 +140,7 @@ const ShoppingListPage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </PageTransition>
   );
 };
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import PageTransition from '@/components/PageTransition';
 import { Shield, User as UserIcon, Plus, Pencil, Trash2, Mail, Star, Flame, Search, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -107,8 +108,8 @@ const UsersPage = () => {
   };
 
   return (
+    <PageTransition>
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar usuário..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
