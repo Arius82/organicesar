@@ -1,4 +1,5 @@
 import { useApp } from '@/context/AppContext';
+import PageTransition from '@/components/PageTransition';
 import { BarChart3, CheckSquare, Trophy, ShoppingCart, TrendingUp } from 'lucide-react';
 
 const ReportsPage = () => {
@@ -17,6 +18,7 @@ const ReportsPage = () => {
   const boughtItems = shopping.filter(i => i.status === 'comprado').length;
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -75,6 +77,7 @@ const ReportsPage = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

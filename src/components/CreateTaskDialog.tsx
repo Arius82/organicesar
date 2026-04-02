@@ -88,7 +88,7 @@ const CreateTaskDialog = () => {
             </div>
             <div className="space-y-2">
               <Label>Prazo</Label>
-              <Input type="date" value={form.data_limite} onChange={e => setForm(f => ({ ...f, data_limite: e.target.value }))} required />
+              <Input type="date" value={form.data_limite} onChange={e => setForm(f => ({ ...f, data_limite: e.target.value }))} required min={new Date().toISOString().split('T')[0]} />
             </div>
           </div>
           <Button type="submit" className="w-full gradient-primary text-primary-foreground">Criar Tarefa</Button>

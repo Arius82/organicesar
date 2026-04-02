@@ -1,4 +1,5 @@
 import { useApp } from '@/context/AppContext';
+import PageTransition from '@/components/PageTransition';
 import { Trophy, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 
 const RewardsPage = () => {
@@ -8,6 +9,7 @@ const RewardsPage = () => {
   const userRewards = isMaster ? rewards : rewards.filter(r => r.usuario_id === currentUser.id);
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       {/* Balance card */}
       {!isMaster && (
@@ -51,6 +53,7 @@ const RewardsPage = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

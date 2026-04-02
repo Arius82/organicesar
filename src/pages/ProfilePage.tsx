@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Camera, Lock, Save, Trophy, Flame, Star, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import AvatarPicker from '@/components/AvatarPicker';
+import PageTransition from '@/components/PageTransition';
 
 const ProfilePage = () => {
   const { currentUser, refreshData } = useApp();
@@ -72,6 +73,7 @@ const ProfilePage = () => {
   if (!currentUser) return null;
 
   return (
+    <PageTransition>
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Stats Card */}
       <Card className="glass-card overflow-hidden">
@@ -188,6 +190,7 @@ const ProfilePage = () => {
         onSelect={(url) => setAvatarUrl(url)}
       />
     </div>
+    </PageTransition>
   );
 };
 
