@@ -26,10 +26,7 @@ export const useNotifications = () => {
 };
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: '1', message: 'Sofia marcou "Arrumar o quarto" como concluída', type: 'info', timestamp: new Date().toISOString(), read: false },
-    { id: '2', message: 'Feijão e Ovos adicionados automaticamente à lista de compras', type: 'warning', timestamp: new Date().toISOString(), read: false },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

@@ -32,7 +32,8 @@ const UserForm = ({ form, setForm, onSubmit, submitLabel }: {
     </div>
     <div className="space-y-2">
       <Label>E-mail</Label>
-      <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="joao@familia.com" required />
+      <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="joao@familia.com" required disabled={submitLabel === 'Salvar Alterações'} className={submitLabel === 'Salvar Alterações' ? 'opacity-50 cursor-not-allowed' : ''} />
+      {submitLabel === 'Salvar Alterações' && <p className="text-xs text-muted-foreground">O e-mail não pode ser alterado.</p>}
     </div>
     <div className="grid grid-cols-2 gap-3">
       <div className="space-y-2">
@@ -113,14 +114,9 @@ const UsersPage = () => {
           <Input placeholder="Buscar usuário..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         {isMaster && (
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-1.5" onClick={() => setShowInvite(true)}>
-              <Send className="w-4 h-4" /> Convidar
-            </Button>
-            <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => setShowAdd(true)}>
-              <Plus className="w-4 h-4" /> Novo Usuário
-            </Button>
-          </div>
+          <Button variant="outline" className="gap-1.5" onClick={() => setShowInvite(true)}>
+            <Send className="w-4 h-4" /> Convidar Membro
+          </Button>
         )}
       </div>
 

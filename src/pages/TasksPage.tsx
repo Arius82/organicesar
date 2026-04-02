@@ -32,7 +32,7 @@ const TasksPage = () => {
   if (!currentUser) return null;
 
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
-  const simpleUsers = users.filter(u => u.tipo === 'simples');
+  const activeUsers = users.filter(u => u.ativo);
   const isOverdue = (task: Task) => task.status === 'pendente' && new Date(task.data_limite) < new Date();
 
   const filteredTasks = userTasks.filter(t => {
@@ -174,7 +174,7 @@ const TasksPage = () => {
                 <Label>Responsável</Label>
                 <Select value={editForm.usuario_id} onValueChange={v => setEditForm(f => ({ ...f, usuario_id: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{simpleUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
+                  <SelectContent>{activeUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
