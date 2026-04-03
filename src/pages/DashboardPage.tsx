@@ -146,6 +146,7 @@ const DashboardPage = () => {
             <Users className="w-4 h-4 text-primary" /> Ranking da família
           </h3>
           <div className="space-y-2">
+            {[...users].sort((a, b) => b.pontos - a.pontos).map((user, i) => (
                <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                  <span className="text-lg w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}</span>
                  <Avatar className="w-8 h-8">
