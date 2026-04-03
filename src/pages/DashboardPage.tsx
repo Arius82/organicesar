@@ -146,12 +146,14 @@ const DashboardPage = () => {
             <Users className="w-4 h-4 text-primary" /> Ranking da família
           </h3>
           <div className="space-y-2">
-            {[...users].sort((a, b) => b.pontos - a.pontos).map((user, i) => (
-              <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                <span className="text-lg w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}</span>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                  {user.nome[0]}
-                </div>
+               <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                 <span className="text-lg w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}</span>
+                 <Avatar className="w-8 h-8">
+                   {user.avatar && <AvatarImage src={user.avatar} alt={user.nome} />}
+                   <AvatarFallback className={`text-xs font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                     {user.nome[0]}
+                   </AvatarFallback>
+                 </Avatar>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">{user.nome}</p>
                   <p className="text-xs text-muted-foreground">{user.nivel}</p>
