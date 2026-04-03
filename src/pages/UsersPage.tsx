@@ -69,8 +69,6 @@ const UsersPage = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  const emptyForm: UserFormData = { nome: '', email: '', tipo: 'simples', saldo: '0', ativo: true };
-  const [addForm, setAddForm] = useState<UserFormData>(emptyForm);
   const [editForm, setEditForm] = useState<UserFormData>({ nome: '', email: '', tipo: 'simples', saldo: '', ativo: true });
 
   const filteredUsers = users.filter(u =>
