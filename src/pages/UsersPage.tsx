@@ -81,14 +81,6 @@ const UsersPage = () => {
     setEditing(user);
   };
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addForm.nome.trim() || !addForm.email.trim()) return;
-    addUser({ nome: addForm.nome.trim(), email: addForm.email.trim(), tipo: addForm.tipo, saldo: parseFloat(addForm.saldo) || 0, ativo: addForm.ativo });
-    addNotification(`Usuário "${addForm.nome}" criado com sucesso`, 'success');
-    setAddForm(emptyForm);
-    setShowAdd(false);
-  };
 
   const handleEdit = (e: React.FormEvent) => {
     e.preventDefault();
