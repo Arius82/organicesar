@@ -1,6 +1,8 @@
 import { useApp } from '@/context/AppContext';
-import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap } from 'lucide-react';
+import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 
 const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
   icon: React.ElementType; label: string; value: string | number; subtitle?: string;
