@@ -154,12 +154,6 @@ const UsersPage = () => {
         ))}
       </div>
 
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle className="font-display">Novo Usuário</DialogTitle></DialogHeader>
-          <UserForm form={addForm} setForm={setAddForm} onSubmit={handleAdd} submitLabel="Criar Usuário" />
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
