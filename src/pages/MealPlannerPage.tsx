@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Coffee, Sun, Moon, Sparkles, Loader2, ChefHat, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Coffee, Sun, Moon, Sparkles, Loader2, ChefHat, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
