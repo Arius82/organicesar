@@ -101,12 +101,8 @@ const PantryPage = () => {
                     <h4 className="font-medium text-foreground">{item.nome_item}</h4>
                     <div className="flex items-center gap-1">
                       {low && <AlertTriangle className="w-4 h-4 text-warning" />}
-                      {isMaster && (
-                        <>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5" /></Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
-                        </>
-                      )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5" /></Button>
+                      {isMaster && <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
