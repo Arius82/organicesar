@@ -27,7 +27,7 @@ const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
 };
 
 const DashboardPage = () => {
-  const { currentUser, tasks, users, isMaster, rewards } = useApp();
+  const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus } = useApp();
   if (!currentUser) return null;
 
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
