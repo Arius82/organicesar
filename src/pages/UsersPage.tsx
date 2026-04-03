@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
-import { Shield, User as UserIcon, Plus, Pencil, Trash2, Mail, Star, Flame, Search, Send } from 'lucide-react';
+import { Shield, User as UserIcon, Pencil, Trash2, Mail, Star, Flame, Search, Send } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
