@@ -1,59 +1,63 @@
 
 
-# Varredura RACE - OrganiCésar
-
-O método RACE (Review, Analyze, Correct, Enhance) aplicado ao app identifica os seguintes pontos:
+# Varredura RACE - OrganiCesar (Abril 2026)
 
 ---
 
 ## R - REVIEW (Problemas encontrados)
 
-### 1. Notificações hardcoded (mock)
-O `NotificationContext.tsx` inicia com 2 notificações fake fixas (linhas 29-32): "Sofia marcou..." e "Feijão e Ovos...". Esses dados mock devem ser removidos.
+### 1. Permissoes restritas demais para usuarios simples
+Usuarios simples nao conseguem adicionar itens na despensa, lista de compras ou cardapio (`isMaster && <AddPantryItemDialog />`). Apenas o botao e escondido no frontend -- as politicas RLS permitem, mas a UI bloqueia. Isso impede a colaboracao da familia.
 
-### 2. Bug na edição de tarefas - filtro de responsáveis
-Em `TasksPage.tsx` linha 35, o `simpleUsers` filtra apenas `tipo === 'simples'` para o dropdown de edição, mas o `CreateTaskDialog` já foi corrigido para mostrar todos os ativos. Inconsistência: ao editar uma tarefa atribuída a um master, ele não aparece no select.
+### 2. Dashboard sem acoes diretas
+A secao "Aguardando aprovacao" no Dashboard mostra tarefas pendentes mas nao tem botoes de Aprovar/Rejeitar inline. O master precisa navegar ate a pagina de Tarefas para agir.
 
-### 3. Realtime causa `fetchAll()` excessivo
-Cada mudança em qualquer tabela dispara `fetchAll()` que recarrega TODAS as tabelas. Com 6 tabelas monitoradas, uma única edição pode causar cascade de reloads desnecessários.
+### 3. Marcar como comprado restrito a master
+Em `ShoppingListPage.tsx` linha 47-48, `toggleShoppingItem` so funciona se `isMaster`. Qualquer membro da familia deveria poder marcar itens como comprados na lista de compras.
 
-### 4. Race condition no `updateTaskStatus`
-Ao concluir uma tarefa, o saldo e pontos são atualizados com valores lidos do estado local (`users.find()`), não do banco. Se dois masters aprovarem tarefas simultaneamente, o saldo pode ser sobrescrito incorretamente.
+### 4. Sincronizacao despensa-compras nao atualiza estoque ao comprar
+O trigger `sync_pantry_to_shopping` gera itens automaticos na lista, mas quando um item e marcado como "comprado", a quantidade na despensa nao e atualizada. O fluxo e incompleto.
 
-### 5. Botão "Novo Usuário" cria apenas localmente
-O `addUser` em `AppContext.tsx` (linha 183) é um placeholder vazio - apenas chama `fetchAll()`. O formulário de "Novo Usuário" na `UsersPage` não faz nada real.
+### 5. Formulario "Novo Usuario" ainda existe (placeholder vazio)
+Em `UsersPage.tsx` linhas 164-169, o dialog de "Novo Usuario" ainda existe no codigo, mesmo que o botao tenha sido substituido por "Convidar Membro". O formulario `handleAdd` chama `addUser` que e um placeholder vazio.
 
-### 6. `editUser` permite alterar email no form mas não no auth
-O formulário de edição permite mudar o email do perfil, mas isso não atualiza o email na tabela `auth.users`, criando dessincronização.
-
----
-
-## A - ANALYZE (Problemas de segurança e performance)
-
-### 7. Atualização de saldo/pontos feita no client-side
-O `updateTaskStatus` calcula e atualiza `saldo` e `pontos` diretamente do frontend. Um usuário mal-intencionado poderia manipular esses valores. Isso deveria ser uma database function (trigger ou RPC).
-
-### 8. Master pode editar seu próprio perfil via RLS, mas RLS de profiles só permite `auth.uid() = id`
-Se um master tenta editar o perfil de OUTRO usuário via `editUser`, o update na tabela `profiles` vai falhar silenciosamente porque a policy só permite editar o próprio perfil. Falta uma policy para masters editarem outros perfis.
-
-### 9. Sem tratamento de erros nas operações CRUD
-Nenhuma das funções em `AppContext` (addTask, editTask, deletePantryItem, etc.) verifica o resultado do Supabase (`error`). Falhas são silenciosas.
-
-### 10. Sem paginação
-Todas as queries carregam todos os registros. Com o limite padrão de 1000 linhas do Supabase, dados podem ser perdidos silenciosamente em famílias com muitos registros históricos.
+### 6. Avatar do usuario nao aparece no ranking e cards
+No `DashboardPage.tsx` (ranking) e `UsersPage.tsx` (cards), o avatar usa apenas a inicial do nome. O campo `avatar` do usuario nunca e renderizado nesses locais, apesar do `AvatarPicker` existir.
 
 ---
 
-## C - CORRECT (Correções prioritárias)
+## A - ANALYZE (Seguranca, performance e UX)
 
-| # | Correção | Impacto |
+### 7. Notificacoes perdidas ao recarregar pagina
+Todas as notificacoes sao armazenadas apenas em `useState` no `NotificationContext`. Ao recarregar o navegador, todas sao perdidas. Nao ha persistencia.
+
+### 8. Sequencia de dias (`sequencia_dias`) nunca e atualizada
+O campo `sequencia_dias` e exibido no Dashboard e Perfil, mas nenhuma logica o incrementa ou reseta. O valor sera sempre 0.
+
+### 9. Nivel do usuario nunca muda
+O campo `nivel` exibe "Iniciante", "Organizado" ou "Mestre da Casa", mas nao existe logica para progredir entre niveis. A barra de progresso no Dashboard calcula `pontos / 500` mas o nivel permanece fixo.
+
+### 10. Realtime ainda chama `fetchAll()` para a maioria das tabelas
+Na varredura anterior, apenas `profiles` foi otimizado. Mudancas em `tasks`, `meal_plans`, `pantry_items`, `shopping_items` e `rewards` ainda disparam `fetchAll()` completo.
+
+### 11. Tarefas recorrentes nao sao recriadas
+O campo `frequencia` (diaria, semanal, mensal) existe, mas ao concluir uma tarefa recorrente ela simplesmente fica como "concluida" permanentemente. Nao ha logica para gerar a proxima ocorrencia.
+
+### 12. Cardapio sem navegacao por semana
+Todas as refeicoes sao listadas sem filtro de data. Com o tempo, a pagina ficara muito longa. Falta navegacao semanal (semana anterior / proxima).
+
+---
+
+## C - CORRECT (Correcoes prioritarias)
+
+| # | Correcao | Impacto |
 |---|----------|---------|
-| 1 | Remover notificações mock do `NotificationContext` | Baixo |
-| 2 | Corrigir filtro de responsáveis na edição de tarefas (usar `activeUsers` como no CreateTaskDialog) | Médio |
-| 3 | Adicionar policy RLS para masters editarem outros perfis | Alto |
-| 4 | Adicionar tratamento de erros em todas as operações CRUD do AppContext | Alto |
-| 5 | Remover/desabilitar botão "Novo Usuário" (funcionalidade vazia) ou implementar via convite | Médio |
-| 6 | Remover campo email do formulário de edição de usuário (não pode ser alterado) | Baixo |
+| 1 | Permitir usuarios simples marcar itens como comprados na lista | Alto |
+| 2 | Permitir usuarios simples adicionar itens na despensa, compras e cardapio | Alto |
+| 3 | Adicionar botoes Aprovar/Rejeitar no Dashboard | Medio |
+| 4 | Remover dialog/formulario "Novo Usuario" residual do UsersPage | Baixo |
+| 5 | Exibir avatar do usuario nos cards e ranking (usar componente Avatar) | Baixo |
+| 6 | Criar trigger para atualizar despensa quando item da lista e marcado como comprado | Alto |
 
 ---
 
@@ -61,35 +65,34 @@ Todas as queries carregam todos os registros. Com o limite padrão de 1000 linha
 
 | # | Melhoria | Complexidade |
 |---|----------|-------------|
-| 1 | Mover lógica de recompensas para uma database function (RPC ou trigger) para evitar race conditions e manipulação | Alta |
-| 2 | Otimizar realtime: recarregar apenas a tabela que mudou em vez de fazer fetchAll() | Média |
-| 3 | Adicionar loading states individuais nos botões de ação (aprovar, concluir, excluir) | Baixa |
-| 4 | Adicionar empty states visuais com ilustrações nas páginas sem dados | Baixa |
-| 5 | Adicionar confirmação antes de aprovar/rejeitar tarefas no Dashboard | Baixa |
-| 6 | Persistir notificações no banco de dados em vez de manter apenas em memória | Média |
-| 7 | Adicionar validação de data limite (não permitir datas passadas ao criar tarefas) | Baixa |
-| 8 | Wrapping de `PageTransition` faltando nas páginas: ShoppingListPage, PantryPage, RewardsPage, UsersPage, ReportsPage, ProfilePage | Baixa |
+| 1 | Implementar progressao de nivel automatica via database function (ex: 0-100 pts = Iniciante, 101-300 = Organizado, 301+ = Mestre da Casa) | Media |
+| 2 | Implementar calculo de `sequencia_dias` via trigger ao concluir tarefas | Media |
+| 3 | Adicionar recriacao automatica de tarefas recorrentes (trigger ao concluir tarefa diaria/semanal/mensal) | Alta |
+| 4 | Adicionar navegacao semanal no Cardapio (setas para navegar entre semanas) | Baixa |
+| 5 | Otimizar realtime: fetch individual por tabela em vez de fetchAll global | Media |
+| 6 | Adicionar empty states visuais com ilustracoes nas listas vazias | Baixa |
+| 7 | Persistir notificacoes no banco para manter historico entre sessoes | Media |
+| 8 | Adicionar grafico visual (barras ou pizza) na pagina de Relatorios | Media |
 
 ---
 
 ## Resumo de Prioridades
 
 ```text
-CRÍTICO (corrigir primeiro):
-  ├── RLS: masters não conseguem editar perfis de outros
-  ├── Race condition na atualização de saldo/pontos
-  └── Erros silenciosos em operações CRUD
+CRITICO (corrigir primeiro):
+  ├── Usuarios simples nao podem marcar compras como compradas
+  ├── Fluxo despensa<->compras incompleto (comprar nao atualiza estoque)
+  └── Usuarios simples bloqueados de adicionar itens
 
 IMPORTANTE (corrigir em seguida):
-  ├── Filtro inconsistente na edição de tarefas
-  ├── Botão "Novo Usuário" sem funcionalidade
-  └── Notificações mock hardcoded
+  ├── Botoes de acao no Dashboard (aprovar/rejeitar)
+  ├── Avatar nao exibido nos cards e ranking
+  └── Remover formulario "Novo Usuario" residual
 
 MELHORIAS (implementar depois):
-  ├── Otimizar realtime (fetch por tabela)
-  ├── Loading states nos botões
-  └── Persistir notificações no banco
+  ├── Progressao de nivel e sequencia de dias
+  ├── Tarefas recorrentes automaticas
+  ├── Navegacao semanal no cardapio
+  └── Graficos nos relatorios
 ```
-
-Deseja que eu implemente as correções por ordem de prioridade?
 
