@@ -86,15 +86,20 @@ const DashboardPage = () => {
             {tasks.filter(t => t.status === 'aguardando_aprovacao').map(task => {
               const user = users.find(u => u.id === task.usuario_id);
               return (
-                <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{task.titulo}</p>
-                    <p className="text-xs text-muted-foreground">{user?.nome} • R$ {task.valor_recompensa.toFixed(2)}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-xs bg-warning/10 text-warning px-2 py-1 rounded-full font-medium">Pendente</span>
-                  </div>
-                </div>
+                 <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                   <div>
+                     <p className="text-sm font-medium text-foreground">{task.titulo}</p>
+                     <p className="text-xs text-muted-foreground">{user?.nome} • R$ {task.valor_recompensa.toFixed(2)}</p>
+                   </div>
+                   <div className="flex gap-1.5">
+                     <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10" onClick={() => updateTaskStatus(task.id, 'rejeitada')}>
+                       <XCircle className="w-3.5 h-3.5 mr-1" /> Rejeitar
+                     </Button>
+                     <Button size="sm" className="h-7 px-2 text-xs gradient-primary text-primary-foreground" onClick={() => updateTaskStatus(task.id, 'concluida')}>
+                       <CheckCircle className="w-3.5 h-3.5 mr-1" /> Aprovar
+                     </Button>
+                   </div>
+                 </div>
               );
             })}
           </div>
