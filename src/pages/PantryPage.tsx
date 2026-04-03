@@ -118,7 +118,7 @@ const PantryPage = () => {
       ))}
 
       {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum item encontrado.</p>}
-      {!isMaster && <p className="text-xs text-muted-foreground text-center italic">Somente visualização</p>}
+      
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>

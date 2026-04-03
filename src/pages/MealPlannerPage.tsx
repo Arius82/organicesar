@@ -109,7 +109,7 @@ const MealPlannerPage = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">{meals.length} refeições planejadas</p>
-          {isMaster && <AddMealDialog />}
+          <AddMealDialog />
         </div>
 
         {/* AI Suggestion Section */}
