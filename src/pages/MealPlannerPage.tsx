@@ -234,7 +234,7 @@ const MealPlannerPage = () => {
         </motion.div>
 
         {/* Existing Meals */}
-        {Object.entries(grouped).map(([date, dayMeals]) => {
+        {Object.entries(allGrouped).map(([date, dayMeals]) => {
           const d = new Date(date + 'T12:00:00');
           return (
             <motion.div
