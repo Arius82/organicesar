@@ -28,6 +28,14 @@ interface MealSuggestion {
   ingredients: string[];
 }
 
+const getWeekStart = (date: Date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
 const MealPlannerPage = () => {
   const { meals, pantry, isMaster, addMeal, editMeal, deleteMeal } = useApp();
   const { addNotification } = useNotifications();
@@ -37,10 +45,30 @@ const MealPlannerPage = () => {
   const [aiDate, setAiDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ descricao: '', ingredientes: '' });
+  const [weekOffset, setWeekOffset] = useState(0);
 
-  const grouped = meals.reduce((acc, meal) => {
+  const currentWeekStart = getWeekStart(new Date());
+  currentWeekStart.setDate(currentWeekStart.getDate() + weekOffset * 7);
+  const weekEnd = new Date(currentWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(currentWeekStart);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+
+  const weekMeals = meals.filter(m => weekDates.includes(m.data));
+
+  const grouped = weekMeals.reduce((acc, meal) => {
     if (!acc[meal.data]) acc[meal.data] = [];
     acc[meal.data].push(meal);
+    return acc;
+  }, {} as Record<string, typeof meals>);
+
+  // Show all days of the week, even empty ones
+  const allGrouped = weekDates.reduce((acc, date) => {
+    acc[date] = grouped[date] || [];
     return acc;
   }, {} as Record<string, typeof meals>);
 
