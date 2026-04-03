@@ -136,8 +136,24 @@ const MealPlannerPage = () => {
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">{meals.length} refeições planejadas</p>
-          <AddMealDialog />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w - 1)}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium text-foreground min-w-[200px] text-center">
+              {currentWeekStart.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} — {weekEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </span>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w + 1)}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            {weekOffset !== 0 && (
+              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setWeekOffset(0)}>Hoje</Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">{weekMeals.length} refeições</p>
+            <AddMealDialog />
+          </div>
         </div>
 
         {/* AI Suggestion Section */}
