@@ -62,7 +62,7 @@ const UserForm = ({ form, setForm, onSubmit, submitLabel }: {
 );
 
 const UsersPage = () => {
-  const { users, currentUser, isMaster, addUser, editUser, deleteUser } = useApp();
+  const { users, currentUser, isMaster, editUser, deleteUser } = useApp();
   const { addNotification } = useNotifications();
   const [showAdd, setShowAdd] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
