@@ -119,9 +119,12 @@ const UsersPage = () => {
           <div key={user.id} className={`glass-card rounded-xl p-5 animate-fade-in relative ${!user.ativo ? 'opacity-50' : ''}`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                  {user.nome[0]}
-                </div>
+                <Avatar className="w-12 h-12">
+                  {user.avatar && <AvatarImage src={user.avatar} alt={user.nome} />}
+                  <AvatarFallback className={`text-lg font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                    {user.nome[0]}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h3 className="font-display font-semibold text-foreground">{user.nome}</h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" /> {user.email}</p>
