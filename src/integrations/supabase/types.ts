@@ -240,6 +240,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_task_status: {
+        Args: { _new_status: string; _task_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "master" | "simples"
