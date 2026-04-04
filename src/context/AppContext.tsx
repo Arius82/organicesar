@@ -201,13 +201,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [signOut]);
 
   const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatus) => {
-    if (newStatus === 'concluida') {
-      const { error } = await supabase.rpc('complete_task_with_reward', { _task_id: taskId });
-      if (error) { console.error('Error completing task:', error); return; }
-    } else {
-      const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
-      if (error) { console.error('Error updating task:', error); return; }
-    }
+    const { error } = await supabase.rpc('update_task_status', { _task_id: taskId, _new_status: newStatus });
+    if (error) { console.error('Error updating task status:', error); return; }
     fetchAll();
   }, [fetchAll]);
 
