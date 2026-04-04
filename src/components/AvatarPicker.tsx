@@ -42,8 +42,10 @@ const AvatarPicker = ({ open, onOpenChange, currentAvatar, onSelect }: AvatarPic
     const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
 
     if (!error) {
-      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      setSelected(data.publicUrl);
+      const { data: signedData } = await supabase.storage.from('avatars').createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signedData?.signedUrl) {
+        setSelected(signedData.signedUrl);
+      }
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
