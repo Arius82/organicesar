@@ -1,6 +1,8 @@
 import { useApp } from '@/context/AppContext';
-import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap } from 'lucide-react';
+import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 
 const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
   icon: React.ElementType; label: string; value: string | number; subtitle?: string;
@@ -25,7 +27,7 @@ const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
 };
 
 const DashboardPage = () => {
-  const { currentUser, tasks, users, isMaster, rewards } = useApp();
+  const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus } = useApp();
   if (!currentUser) return null;
 
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
@@ -84,15 +86,20 @@ const DashboardPage = () => {
             {tasks.filter(t => t.status === 'aguardando_aprovacao').map(task => {
               const user = users.find(u => u.id === task.usuario_id);
               return (
-                <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{task.titulo}</p>
-                    <p className="text-xs text-muted-foreground">{user?.nome} • R$ {task.valor_recompensa.toFixed(2)}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-xs bg-warning/10 text-warning px-2 py-1 rounded-full font-medium">Pendente</span>
-                  </div>
-                </div>
+                 <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                   <div>
+                     <p className="text-sm font-medium text-foreground">{task.titulo}</p>
+                     <p className="text-xs text-muted-foreground">{user?.nome} • R$ {task.valor_recompensa.toFixed(2)}</p>
+                   </div>
+                   <div className="flex gap-1.5">
+                     <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10" onClick={() => updateTaskStatus(task.id, 'rejeitada')}>
+                       <XCircle className="w-3.5 h-3.5 mr-1" /> Rejeitar
+                     </Button>
+                     <Button size="sm" className="h-7 px-2 text-xs gradient-primary text-primary-foreground" onClick={() => updateTaskStatus(task.id, 'concluida')}>
+                       <CheckCircle className="w-3.5 h-3.5 mr-1" /> Aprovar
+                     </Button>
+                   </div>
+                 </div>
               );
             })}
           </div>
@@ -140,11 +147,14 @@ const DashboardPage = () => {
           </h3>
           <div className="space-y-2">
             {[...users].sort((a, b) => b.pontos - a.pontos).map((user, i) => (
-              <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                <span className="text-lg w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}</span>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                  {user.nome[0]}
-                </div>
+               <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                 <span className="text-lg w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}</span>
+                 <Avatar className="w-8 h-8">
+                   {user.avatar && <AvatarImage src={user.avatar} alt={user.nome} />}
+                   <AvatarFallback className={`text-xs font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                     {user.nome[0]}
+                   </AvatarFallback>
+                 </Avatar>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">{user.nome}</p>
                   <p className="text-xs text-muted-foreground">{user.nivel}</p>

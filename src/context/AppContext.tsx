@@ -133,31 +133,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  const fetchTasks = useCallback(async () => {
+    const { data } = await supabase.from('tasks').select('*').order('data_criacao', { ascending: false });
+    if (data) setTasks(data.map(t => ({
+      id: t.id, titulo: t.titulo, descricao: t.descricao, usuario_id: t.usuario_id,
+      frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
+      status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
+      data_conclusao: t.data_conclusao || undefined,
+    })));
+  }, []);
+
+  const fetchRewards = useCallback(async () => {
+    const { data } = await supabase.from('rewards').select('*').order('data', { ascending: false });
+    if (data) setRewards(data.map(r => ({
+      id: r.id, usuario_id: r.usuario_id, valor: Number(r.valor),
+      tipo: r.tipo as 'credito' | 'debito', descricao: r.descricao, data: r.data,
+    })));
+  }, []);
+
+  const fetchPantry = useCallback(async () => {
+    const { data } = await supabase.from('pantry_items').select('*').order('categoria');
+    if (data) setPantry(data.map(p => ({
+      id: p.id, nome_item: p.nome_item, quantidade: p.quantidade,
+      quantidade_minima: p.quantidade_minima, categoria: p.categoria, validade: p.validade || undefined,
+    })));
+  }, []);
+
+  const fetchShopping = useCallback(async () => {
+    const { data } = await supabase.from('shopping_items').select('*').order('created_at', { ascending: false });
+    if (data) setShopping(data.map(s => ({
+      id: s.id, nome_item: s.nome_item, quantidade: s.quantidade,
+      status: s.status as 'pendente' | 'comprado', gerado_automaticamente: s.gerado_automaticamente,
+    })));
+  }, []);
+
+  const fetchMeals = useCallback(async () => {
+    const { data } = await supabase.from('meal_plans').select('*').order('data');
+    if (data) setMeals(data.map(m => ({
+      id: m.id, data: m.data, refeicao: m.refeicao as 'cafe' | 'almoco' | 'jantar',
+      descricao: m.descricao, ingredientes_relacionados: m.ingredientes_relacionados || [],
+    })));
+  }, []);
+
   // Realtime subscriptions
   useEffect(() => {
     if (!authUser) return;
 
-    const handleTableChange = (table: string) => () => {
-      console.log(`[Realtime] ${table} changed`);
-      if (table === 'profiles') fetchUsers().then(usersData => {
-        const me = usersData.find(u => u.id === authUser.id) || null;
-        setCurrentUser(me);
-      });
-      else fetchAll();
-    };
-
     const channel = supabase
       .channel('app-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, handleTableChange('tasks'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_plans' }, handleTableChange('meal_plans'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items' }, handleTableChange('pantry_items'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, handleTableChange('shopping_items'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards' }, handleTableChange('rewards'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handleTableChange('profiles'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { fetchTasks(); fetchRewards(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_plans' }, () => fetchMeals())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items' }, () => { fetchPantry(); fetchShopping(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, () => { fetchShopping(); fetchPantry(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards' }, () => fetchRewards())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchUsers().then(usersData => {
+        const me = usersData.find(u => u.id === authUser.id) || null;
+        setCurrentUser(me);
+      }))
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [authUser, fetchAll, fetchUsers]);
+  }, [authUser, fetchUsers, fetchTasks, fetchRewards, fetchPantry, fetchShopping, fetchMeals]);
 
   const logout = useCallback(async () => {
     await signOut();

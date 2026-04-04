@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
-import { Shield, User as UserIcon, Plus, Pencil, Trash2, Mail, Star, Flame, Search, Send } from 'lucide-react';
+import { Shield, User as UserIcon, Pencil, Trash2, Mail, Star, Flame, Search, Send } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -61,16 +62,13 @@ const UserForm = ({ form, setForm, onSubmit, submitLabel }: {
 );
 
 const UsersPage = () => {
-  const { users, currentUser, isMaster, addUser, editUser, deleteUser } = useApp();
+  const { users, currentUser, isMaster, editUser, deleteUser } = useApp();
   const { addNotification } = useNotifications();
-  const [showAdd, setShowAdd] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  const emptyForm: UserFormData = { nome: '', email: '', tipo: 'simples', saldo: '0', ativo: true };
-  const [addForm, setAddForm] = useState<UserFormData>(emptyForm);
   const [editForm, setEditForm] = useState<UserFormData>({ nome: '', email: '', tipo: 'simples', saldo: '', ativo: true });
 
   const filteredUsers = users.filter(u =>
@@ -83,14 +81,6 @@ const UsersPage = () => {
     setEditing(user);
   };
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addForm.nome.trim() || !addForm.email.trim()) return;
-    addUser({ nome: addForm.nome.trim(), email: addForm.email.trim(), tipo: addForm.tipo, saldo: parseFloat(addForm.saldo) || 0, ativo: addForm.ativo });
-    addNotification(`Usuário "${addForm.nome}" criado com sucesso`, 'success');
-    setAddForm(emptyForm);
-    setShowAdd(false);
-  };
 
   const handleEdit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,9 +119,12 @@ const UsersPage = () => {
           <div key={user.id} className={`glass-card rounded-xl p-5 animate-fade-in relative ${!user.ativo ? 'opacity-50' : ''}`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                  {user.nome[0]}
-                </div>
+                <Avatar className="w-12 h-12">
+                  {user.avatar && <AvatarImage src={user.avatar} alt={user.nome} />}
+                  <AvatarFallback className={`text-lg font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                    {user.nome[0]}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h3 className="font-display font-semibold text-foreground">{user.nome}</h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" /> {user.email}</p>
@@ -161,12 +154,6 @@ const UsersPage = () => {
         ))}
       </div>
 
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle className="font-display">Novo Usuário</DialogTitle></DialogHeader>
-          <UserForm form={addForm} setForm={setAddForm} onSubmit={handleAdd} submitLabel="Criar Usuário" />
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md">

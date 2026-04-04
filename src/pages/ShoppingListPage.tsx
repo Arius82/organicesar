@@ -44,9 +44,9 @@ const ShoppingListPage = () => {
   const renderItem = (item: ShoppingItem, bought: boolean) => (
     <div key={item.id} className={`glass-card rounded-xl p-4 flex items-center gap-3 animate-fade-in ${bought ? 'opacity-60' : ''}`}>
       <button
-        onClick={() => isMaster && toggleShoppingItem(item.id)}
-        className={`w-6 h-6 rounded-md flex items-center justify-center transition-all flex-shrink-0 ${
-          bought ? 'gradient-primary cursor-pointer' : `border-2 border-primary/30 ${isMaster ? 'hover:border-primary cursor-pointer' : 'cursor-default'}`
+        onClick={() => toggleShoppingItem(item.id)}
+        className={`w-6 h-6 rounded-md flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
+          bought ? 'gradient-primary' : 'border-2 border-primary/30 hover:border-primary'
         }`}
       >
         {bought && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
@@ -76,7 +76,7 @@ const ShoppingListPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar item..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
-          {isMaster && <AddShoppingItemDialog />}
+          <AddShoppingItemDialog />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />
