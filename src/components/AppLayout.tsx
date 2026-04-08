@@ -116,6 +116,7 @@ const AppLayout = () => {
             <Outlet />
           </div>
         </AnimatePresence>
+        <InstallBanner />
       </main>
     </div>
   );
