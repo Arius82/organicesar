@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeToggle from '@/components/ThemeToggle';
+import InstallBanner from '@/components/InstallBanner';
 import logo from '@/assets/logo.png';
 
 const navItems = [
