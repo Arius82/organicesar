@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
-import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, ChevronLeft, Pencil, Trash2, Plus, CalendarDays } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, ChevronLeft, Pencil, Trash2, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import CreateTaskDialog from '@/components/CreateTaskDialog';
-import type { Task, TaskFrequency, TaskStatus } from '@/types';
+import type { Task, TaskFrequency } from '@/types';
 
 const statusConfig = {
   pendente: { label: 'Pendente', icon: Clock, className: 'bg-muted text-muted-foreground' },
@@ -45,21 +45,17 @@ const TasksPage = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ titulo: '', descricao: '', usuario_id: '', frequencia: 'diaria' as TaskFrequency, valor_recompensa: '', data_limite: '' });
 
-  if (!currentUser) return null;
-
   const weekDates = getWeekDates(weekOffset);
   const selectedDateStr = toDateStr(selectedDate);
   const todayStr = toDateStr(new Date());
 
-  const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
+  const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser?.id);
 
-  // Tasks for the selected day (by data_limite)
   const dayTasks = useMemo(() =>
     userTasks.filter(t => t.data_limite === selectedDateStr),
     [userTasks, selectedDateStr]
   );
 
-  // Count tasks per day for the week (for dots)
   const taskCountByDay = useMemo(() => {
     const counts: Record<string, { total: number; pending: number; done: number }> = {};
     weekDates.forEach(d => {
@@ -76,6 +72,8 @@ const TasksPage = () => {
 
   const activeUsers = users.filter(u => u.ativo);
   const isOverdue = (task: Task) => task.status === 'pendente' && new Date(task.data_limite) < new Date();
+
+  if (!currentUser) return null;
 
   const openEdit = (task: Task) => {
     setEditForm({
