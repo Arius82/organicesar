@@ -59,15 +59,22 @@ const CreateTaskDialog = () => {
             <Textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Detalhes..." maxLength={500} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Responsável</Label>
-              <Select value={form.usuario_id} onValueChange={v => setForm(f => ({ ...f, usuario_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {activeUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            {isMaster ? (
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Select value={form.usuario_id} onValueChange={v => setForm(f => ({ ...f, usuario_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {activeUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Input value={currentUser?.nome || ''} disabled />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Frequência</Label>
               <Select value={form.frequencia} onValueChange={v => setForm(f => ({ ...f, frequencia: v as TaskFrequency }))}>
@@ -82,10 +89,12 @@ const CreateTaskDialog = () => {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Recompensa (R$)</Label>
-              <Input type="number" step="0.50" min="0" value={form.valor_recompensa} onChange={e => setForm(f => ({ ...f, valor_recompensa: e.target.value }))} placeholder="5.00" />
-            </div>
+            {isMaster && (
+              <div className="space-y-2">
+                <Label>Recompensa (R$)</Label>
+                <Input type="number" step="0.50" min="0" value={form.valor_recompensa} onChange={e => setForm(f => ({ ...f, valor_recompensa: e.target.value }))} placeholder="5.00" />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Prazo</Label>
               <Input type="date" value={form.data_limite} onChange={e => setForm(f => ({ ...f, data_limite: e.target.value }))} required min={new Date().toISOString().split('T')[0]} />
