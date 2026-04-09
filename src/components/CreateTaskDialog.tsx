@@ -27,9 +27,9 @@ const CreateTaskDialog = () => {
     addTask({
       titulo: form.titulo.trim(),
       descricao: form.descricao.trim(),
-      usuario_id: form.usuario_id,
+      usuario_id: isMaster ? form.usuario_id : currentUser!.id,
       frequencia: form.frequencia,
-      valor_recompensa: parseFloat(form.valor_recompensa) || 0,
+      valor_recompensa: isMaster ? (parseFloat(form.valor_recompensa) || 0) : 0,
       data_limite: form.data_limite,
     });
     const userName = users.find(u => u.id === form.usuario_id)?.nome;
