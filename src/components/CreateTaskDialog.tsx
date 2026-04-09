@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,27 @@ import { useApp } from '@/context/AppContext';
 import { useNotifications } from '@/context/NotificationContext';
 import type { TaskFrequency } from '@/types';
 
-const CreateTaskDialog = () => {
+interface CreateTaskDialogProps {
+  defaultDate?: string;
+}
+
+const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
   const { users, currentUser, isMaster, addTask } = useApp();
   const { addNotification } = useNotifications();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    titulo: '', descricao: '', usuario_id: '', frequencia: 'diaria' as TaskFrequency,
-    valor_recompensa: '', data_limite: '',
+    titulo: '', descricao: '', usuario_id: '', frequencia: 'unica' as TaskFrequency,
+    valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0],
   });
 
   const activeUsers = users.filter(u => u.ativo);
+
+  // Update date when defaultDate changes and dialog is closed
+  useEffect(() => {
+    if (defaultDate && !open) {
+      setForm(f => ({ ...f, data_limite: defaultDate }));
+    }
+  }, [defaultDate, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,17 +43,17 @@ const CreateTaskDialog = () => {
       valor_recompensa: isMaster ? (parseFloat(form.valor_recompensa) || 0) : 0,
       data_limite: form.data_limite,
     });
-    const userName = users.find(u => u.id === form.usuario_id)?.nome;
+    const userName = isMaster ? users.find(u => u.id === form.usuario_id)?.nome : currentUser?.nome;
     addNotification(`Nova tarefa "${form.titulo}" atribuída a ${userName}`, 'info');
-    setForm({ titulo: '', descricao: '', usuario_id: '', frequencia: 'diaria', valor_recompensa: '', data_limite: '' });
+    setForm({ titulo: '', descricao: '', usuario_id: '', frequencia: 'unica', valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0] });
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gradient-primary text-primary-foreground gap-1.5">
-          <Plus className="w-4 h-4" /> Nova Tarefa
+        <Button size="sm" className="gradient-primary text-primary-foreground gap-1 h-8 text-xs">
+          <Plus className="w-3.5 h-3.5" /> Nova Tarefa
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -97,7 +108,7 @@ const CreateTaskDialog = () => {
             )}
             <div className="space-y-2">
               <Label>Prazo</Label>
-              <Input type="date" value={form.data_limite} onChange={e => setForm(f => ({ ...f, data_limite: e.target.value }))} required min={new Date().toISOString().split('T')[0]} />
+              <Input type="date" value={form.data_limite} onChange={e => setForm(f => ({ ...f, data_limite: e.target.value }))} required />
             </div>
           </div>
           <Button type="submit" className="w-full gradient-primary text-primary-foreground">Criar Tarefa</Button>
