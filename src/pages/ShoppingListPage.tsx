@@ -58,12 +58,10 @@ const ShoppingListPage = () => {
       {item.gerado_automaticamente && (
         <span className="text-xs bg-info/10 text-info px-2 py-0.5 rounded-full flex items-center gap-1"><Zap className="w-3 h-3" /> Auto</span>
       )}
-      {isMaster && (
-        <div className="flex gap-1 flex-shrink-0">
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
-        </div>
-      )}
+      <div className="flex gap-1 flex-shrink-0">
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5" /></Button>
+        {isMaster && <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>}
+      </div>
     </div>
   );
 
