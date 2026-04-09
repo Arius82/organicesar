@@ -71,7 +71,7 @@ const TasksPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar tarefa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
-          {isMaster && <CreateTaskDialog />}
+          <CreateTaskDialog />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />

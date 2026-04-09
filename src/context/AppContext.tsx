@@ -212,8 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await supabase.from('shopping_items').update({
       status: item.status === 'pendente' ? 'comprado' : 'pendente',
     }).eq('id', itemId);
-    fetchAll();
-  }, [shopping, fetchAll]);
+  }, [shopping]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => {
     const { error } = await supabase.from('tasks').insert({
@@ -222,74 +221,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       data_limite: task.data_limite, created_by: authUser?.id,
     });
     if (error) console.error('Error adding task:', error);
-    fetchAll();
-  }, [authUser, fetchAll]);
+  }, [authUser]);
 
   const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => {
     const { error } = await supabase.from('tasks').update(data).eq('id', taskId);
     if (error) console.error('Error editing task:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const deleteTask = useCallback(async (taskId: string) => {
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
     if (error) console.error('Error deleting task:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const addPantryItem = useCallback(async (item: Omit<PantryItem, 'id'>) => {
     const { error } = await supabase.from('pantry_items').insert(item);
     if (error) console.error('Error adding pantry item:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const editPantryItem = useCallback(async (itemId: string, data: Partial<Omit<PantryItem, 'id'>>) => {
     const { error } = await supabase.from('pantry_items').update(data).eq('id', itemId);
     if (error) console.error('Error editing pantry item:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const deletePantryItem = useCallback(async (itemId: string) => {
     const { error } = await supabase.from('pantry_items').delete().eq('id', itemId);
     if (error) console.error('Error deleting pantry item:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const addShoppingItem = useCallback(async (item: { nome_item: string; quantidade: number }) => {
     const { error } = await supabase.from('shopping_items').insert(item);
     if (error) console.error('Error adding shopping item:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const editShoppingItem = useCallback(async (itemId: string, data: Partial<Omit<ShoppingItem, 'id'>>) => {
     const { error } = await supabase.from('shopping_items').update(data).eq('id', itemId);
     if (error) console.error('Error editing shopping item:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const deleteShoppingItem = useCallback(async (itemId: string) => {
     const { error } = await supabase.from('shopping_items').delete().eq('id', itemId);
     if (error) console.error('Error deleting shopping item:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const addMeal = useCallback(async (meal: Omit<MealPlan, 'id'>) => {
     const { error } = await supabase.from('meal_plans').insert(meal);
     if (error) console.error('Error adding meal:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const editMeal = useCallback(async (mealId: string, data: Partial<Omit<MealPlan, 'id'>>) => {
     const { error } = await supabase.from('meal_plans').update(data).eq('id', mealId);
     if (error) console.error('Error editing meal:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const deleteMeal = useCallback(async (mealId: string) => {
     const { error } = await supabase.from('meal_plans').delete().eq('id', mealId);
     if (error) console.error('Error deleting meal:', error);
-    fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const addUser = useCallback(async (_user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
     // Users are now created through signup - this is a placeholder
