@@ -11,7 +11,7 @@ import { useNotifications } from '@/context/NotificationContext';
 import type { TaskFrequency } from '@/types';
 
 const CreateTaskDialog = () => {
-  const { users, addTask } = useApp();
+  const { users, currentUser, isMaster, addTask } = useApp();
   const { addNotification } = useNotifications();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
