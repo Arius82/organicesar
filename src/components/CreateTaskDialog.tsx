@@ -23,7 +23,7 @@ const CreateTaskDialog = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.titulo.trim() || !form.usuario_id || !form.data_limite) return;
+    if (!form.titulo.trim() || (!isMaster && !currentUser) || (isMaster && !form.usuario_id) || !form.data_limite) return;
     addTask({
       titulo: form.titulo.trim(),
       descricao: form.descricao.trim(),
