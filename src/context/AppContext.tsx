@@ -296,9 +296,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [fetchAll]);
 
   const deleteUser = useCallback(async (userId: string) => {
-    // Only delete profile/roles - can't delete auth user from client
-    await supabase.from('user_roles').delete().eq('user_id', userId);
-    await supabase.from('profiles').update({ ativo: false }).eq('id', userId);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await supabase.functions.invoke('delete-user', {
+      body: { user_id: userId },
+    });
+    if (res.error) {
+      console.error('Error deleting user:', res.error);
+      return;
+    }
     fetchAll();
   }, [fetchAll]);
 
