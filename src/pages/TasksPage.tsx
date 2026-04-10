@@ -174,6 +174,50 @@ const TasksPage = () => {
           </div>
         </div>
 
+        {/* Week overview */}
+        <div className="glass-card rounded-xl p-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Resumo da semana</h3>
+          <div className="space-y-1.5">
+            {weekDates.map(date => {
+              const ds = toDateStr(date);
+              const dayItems = weekTasksByDay[ds] || [];
+              if (dayItems.length === 0) return null;
+              const doneCount = dayItems.filter(t => t.status === 'concluida').length;
+              const isToday = ds === todayStr;
+              return (
+                <button
+                  key={ds}
+                  onClick={() => setSelectedDate(date)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+                    ds === selectedDateStr ? 'bg-primary/10' : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <span className={`text-xs font-semibold w-8 ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {weekdayNames[date.getDay()]}
+                  </span>
+                  <span className={`text-xs ${isToday ? 'font-bold text-foreground' : 'text-foreground'}`}>
+                    {date.getDate()}/{(date.getMonth()+1).toString().padStart(2,'0')}
+                  </span>
+                  <div className="flex-1 flex gap-1 items-center">
+                    {dayItems.slice(0, 3).map(t => (
+                      <span key={t.id} className={`text-[10px] px-1.5 py-0.5 rounded-full truncate max-w-[80px] ${
+                        t.status === 'concluida' ? 'bg-success/10 text-success line-through' :
+                        t.status === 'pendente' ? 'bg-warning/10 text-warning' :
+                        'bg-muted text-muted-foreground'
+                      }`}>{t.titulo}</span>
+                    ))}
+                    {dayItems.length > 3 && <span className="text-[10px] text-muted-foreground">+{dayItems.length - 3}</span>}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{doneCount}/{dayItems.length}</span>
+                </button>
+              );
+            })}
+            {weekDates.every(d => (weekTasksByDay[toDateStr(d)] || []).length === 0) && (
+              <p className="text-xs text-muted-foreground text-center py-2">Nenhuma tarefa nesta semana</p>
+            )}
+          </div>
+        </div>
+
         {/* Selected day header + add button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
