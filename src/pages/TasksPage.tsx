@@ -249,11 +249,22 @@ const TasksPage = () => {
             const overdue = isOverdue(task);
 
             return (
-              <div key={task.id} className={`glass-card rounded-xl p-4 animate-fade-in ${overdue ? 'border-destructive/30' : ''}`}>
+              <div key={task.id} className={`glass-card rounded-xl p-4 animate-fade-in ${overdue ? 'border-destructive/30' : ''} ${task.status === 'concluida' ? 'opacity-60' : ''}`}>
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${status.className}`}>
-                    <StatusIcon className="w-4 h-4" />
-                  </div>
+                  {/* Clickable check for assignee or status icon */}
+                  {task.status === 'pendente' && task.usuario_id === currentUser?.id ? (
+                    <button
+                      onClick={() => updateTaskStatus(task.id, 'aguardando_aprovacao')}
+                      className="mt-0.5 w-8 h-8 rounded-lg border-2 border-primary/30 flex items-center justify-center flex-shrink-0 hover:bg-primary/10 hover:border-primary transition-colors cursor-pointer"
+                      title="Marcar como concluída"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-primary/40" />
+                    </button>
+                  ) : (
+                    <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${status.className}`}>
+                      <StatusIcon className="w-4 h-4" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-medium text-foreground">{task.titulo}</h3>
