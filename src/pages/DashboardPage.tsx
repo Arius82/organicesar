@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
+import type { Task } from '@/types';
 
 const toDateStr = (d: Date) => d.toISOString().split('T')[0];
 
-const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
+const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default', onClick }: {
   icon: React.ElementType; label: string; value: string | number; subtitle?: string;
   variant?: 'default' | 'primary' | 'warning' | 'reward';
+  onClick?: () => void;
 }) => {
   const variantStyles = {
     default: 'bg-card border-border',
@@ -18,7 +22,10 @@ const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
     reward: 'bg-secondary border-border',
   };
   return (
-    <div className={`rounded-xl border p-4 ${variantStyles[variant]} animate-scale-in`}>
+    <div
+      className={`rounded-xl border p-4 ${variantStyles[variant]} animate-scale-in ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-center gap-3 mb-2">
         <Icon className={`w-5 h-5 ${variant === 'primary' ? 'text-primary-foreground/80' : variant === 'warning' ? 'text-warning' : 'text-primary'}`} />
         <span className={`text-sm font-medium ${variant === 'primary' ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{label}</span>
@@ -29,30 +36,38 @@ const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
   );
 };
 
+const statusLabel: Record<string, string> = {
+  pendente: 'Pendente',
+  aguardando_aprovacao: 'Aguardando aprovação',
+  concluida: 'Concluída',
+  rejeitada: 'Rejeitada',
+};
+
 const DashboardPage = () => {
   const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus } = useApp();
   const navigate = useNavigate();
+  const [taskDialog, setTaskDialog] = useState<{ title: string; tasks: Task[] } | null>(null);
+
   if (!currentUser) return null;
 
   const todayStr = toDateStr(new Date());
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
-  const pending = userTasks.filter(t => t.status === 'pendente').length;
-  const awaiting = userTasks.filter(t => t.status === 'aguardando_aprovacao').length;
-  const completed = userTasks.filter(t => t.status === 'concluida').length;
-  const overdue = userTasks.filter(t => t.status === 'pendente' && new Date(t.data_limite) < new Date()).length;
+  const pendingTasks = userTasks.filter(t => t.status === 'pendente');
+  const awaitingTasks = userTasks.filter(t => t.status === 'aguardando_aprovacao');
+  const completedTasks = userTasks.filter(t => t.status === 'concluida');
+  const overdueTasks = userTasks.filter(t => t.status === 'pendente' && new Date(t.data_limite) < new Date());
 
-  // Today's tasks for the current user (not master-filtered, always personal)
   const myTodayTasks = tasks
     .filter(t => t.usuario_id === currentUser.id && t.data_limite === todayStr && t.status !== 'concluida')
     .sort((a, b) => {
-      const order = { pendente: 0, aguardando_aprovacao: 1, rejeitada: 2 };
+      const order: Record<string, number> = { pendente: 0, aguardando_aprovacao: 1, rejeitada: 2 };
       return (order[a.status] ?? 3) - (order[b.status] ?? 3);
     });
 
   const totalPaid = rewards.filter(r => r.tipo === 'credito').reduce((acc, r) => acc + r.valor, 0);
-  const nivelEmoji = { 'Iniciante': '🌱', 'Organizado': '🌿', 'Mestre da Casa': '🌳' };
+  const nivelEmoji: Record<string, string> = { 'Iniciante': '🌱', 'Organizado': '🌿', 'Mestre da Casa': '🌳' };
 
-  const statusLabel: Record<string, string> = {
+  const todayStatusLabel: Record<string, string> = {
     pendente: 'A fazer',
     aguardando_aprovacao: 'Aguardando aprovação',
     rejeitada: 'Rejeitada - refazer',
@@ -118,7 +133,7 @@ const DashboardPage = () => {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{task.titulo}</p>
-                  <p className="text-xs text-muted-foreground">{statusLabel[task.status] || task.status}</p>
+                  <p className="text-xs text-muted-foreground">{todayStatusLabel[task.status] || task.status}</p>
                 </div>
                 {task.valor_recompensa > 0 && (
                   <span className="text-xs font-semibold text-reward flex-shrink-0">R$ {task.valor_recompensa.toFixed(2)}</span>
@@ -129,11 +144,14 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* Stats */}
+      {/* Stats - clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={Clock} label="Pendentes" value={pending} variant="default" />
-        <StatCard icon={CheckSquare} label="Concluídas" value={completed} variant="primary" />
-        <StatCard icon={AlertTriangle} label="Atrasadas" value={overdue} variant="warning" />
+        <StatCard icon={Clock} label="Pendentes" value={pendingTasks.length} variant="default"
+          onClick={() => setTaskDialog({ title: 'Tarefas Pendentes', tasks: pendingTasks })} />
+        <StatCard icon={CheckSquare} label="Concluídas" value={completedTasks.length} variant="primary"
+          onClick={() => setTaskDialog({ title: 'Tarefas Concluídas', tasks: completedTasks })} />
+        <StatCard icon={AlertTriangle} label="Atrasadas" value={overdueTasks.length} variant="warning"
+          onClick={() => setTaskDialog({ title: 'Tarefas Atrasadas', tasks: overdueTasks })} />
         {isMaster ? (
           <StatCard icon={Trophy} label="Pago total" value={`R$ ${totalPaid.toFixed(2)}`} variant="reward" />
         ) : (
@@ -141,14 +159,56 @@ const DashboardPage = () => {
         )}
       </div>
 
+      {/* Task list dialog */}
+      <Dialog open={!!taskDialog} onOpenChange={o => !o && setTaskDialog(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">{taskDialog?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 mt-2">
+            {taskDialog?.tasks.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa encontrada</p>
+            )}
+            {taskDialog?.tasks.map(task => {
+              const user = users.find(u => u.id === task.usuario_id);
+              const overdue = task.status === 'pendente' && new Date(task.data_limite) < new Date();
+              return (
+                <div key={task.id} className={`flex items-center gap-3 p-3 rounded-lg bg-muted/50 ${overdue ? 'border border-destructive/30' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium text-foreground ${task.status === 'concluida' ? 'line-through opacity-60' : ''}`}>{task.titulo}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {user && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Avatar className="w-4 h-4">
+                            {user.avatar && <AvatarImage src={user.avatar} />}
+                            <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{user.nome[0]}</AvatarFallback>
+                          </Avatar>
+                          {user.nome}
+                        </span>
+                      )}
+                      {task.data_limite && <span className="text-xs text-muted-foreground">{new Date(task.data_limite + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>}
+                      {overdue && <span className="text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">Atrasada</span>}
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{statusLabel[task.status] || task.status}</span>
+                    </div>
+                  </div>
+                  {task.valor_recompensa > 0 && (
+                    <span className="text-xs font-semibold text-reward flex-shrink-0">R$ {task.valor_recompensa.toFixed(2)}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Awaiting approval (master) */}
-      {isMaster && awaiting > 0 && (
+      {isMaster && awaitingTasks.length > 0 && (
         <div className="glass-card rounded-xl p-4">
           <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-warning" /> Aguardando aprovação ({awaiting})
+            <Zap className="w-4 h-4 text-warning" /> Aguardando aprovação ({awaitingTasks.length})
           </h3>
           <div className="space-y-2">
-            {tasks.filter(t => t.status === 'aguardando_aprovacao').map(task => {
+            {awaitingTasks.map(task => {
               const user = users.find(u => u.id === task.usuario_id);
               return (
                  <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">

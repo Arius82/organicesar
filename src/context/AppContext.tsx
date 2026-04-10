@@ -220,8 +220,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       frequencia: task.frequencia, valor_recompensa: task.valor_recompensa,
       data_limite: task.data_limite, created_by: authUser?.id,
     });
-    if (error) console.error('Error adding task:', error);
-  }, [authUser]);
+    if (error) {
+      console.error('Error adding task:', error);
+      return;
+    }
+    await fetchTasks();
+  }, [authUser, fetchTasks]);
 
   const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => {
     const { error } = await supabase.from('tasks').update(data).eq('id', taskId);
