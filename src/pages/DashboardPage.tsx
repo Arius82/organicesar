@@ -1,8 +1,11 @@
 import { useApp } from '@/context/AppContext';
-import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle } from 'lucide-react';
+import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+
+const toDateStr = (d: Date) => d.toISOString().split('T')[0];
 
 const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
   icon: React.ElementType; label: string; value: string | number; subtitle?: string;
@@ -28,17 +31,32 @@ const StatCard = ({ icon: Icon, label, value, subtitle, variant = 'default' }: {
 
 const DashboardPage = () => {
   const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus } = useApp();
+  const navigate = useNavigate();
   if (!currentUser) return null;
 
+  const todayStr = toDateStr(new Date());
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
   const pending = userTasks.filter(t => t.status === 'pendente').length;
   const awaiting = userTasks.filter(t => t.status === 'aguardando_aprovacao').length;
   const completed = userTasks.filter(t => t.status === 'concluida').length;
   const overdue = userTasks.filter(t => t.status === 'pendente' && new Date(t.data_limite) < new Date()).length;
 
-  const totalPaid = rewards.filter(r => r.tipo === 'credito').reduce((acc, r) => acc + r.valor, 0);
+  // Today's tasks for the current user (not master-filtered, always personal)
+  const myTodayTasks = tasks
+    .filter(t => t.usuario_id === currentUser.id && t.data_limite === todayStr && t.status !== 'concluida')
+    .sort((a, b) => {
+      const order = { pendente: 0, aguardando_aprovacao: 1, rejeitada: 2 };
+      return (order[a.status] ?? 3) - (order[b.status] ?? 3);
+    });
 
+  const totalPaid = rewards.filter(r => r.tipo === 'credito').reduce((acc, r) => acc + r.valor, 0);
   const nivelEmoji = { 'Iniciante': '🌱', 'Organizado': '🌿', 'Mestre da Casa': '🌳' };
+
+  const statusLabel: Record<string, string> = {
+    pendente: 'A fazer',
+    aguardando_aprovacao: 'Aguardando aprovação',
+    rejeitada: 'Rejeitada - refazer',
+  };
 
   return (
     <PageTransition>
@@ -51,7 +69,9 @@ const DashboardPage = () => {
               Olá, {currentUser.nome}! 👋
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              {pending > 0 ? `Você tem ${pending} tarefa${pending > 1 ? 's' : ''} pendente${pending > 1 ? 's' : ''}.` : 'Tudo em dia! Continue assim! 🎉'}
+              {myTodayTasks.length > 0
+                ? `Você tem ${myTodayTasks.length} tarefa${myTodayTasks.length > 1 ? 's' : ''} para hoje.`
+                : 'Tudo em dia! Continue assim! 🎉'}
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-2 bg-secondary rounded-xl px-4 py-2">
@@ -63,6 +83,51 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Today's tasks */}
+      {myTodayTasks.length > 0 && (
+        <div className="glass-card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" /> Tarefas de hoje
+            </h3>
+            <Button variant="ghost" size="sm" className="text-xs h-7 text-primary" onClick={() => navigate('/tasks')}>
+              Ver todas <ChevronRight className="w-3 h-3 ml-1" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {myTodayTasks.map(task => (
+              <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 transition-colors">
+                {task.status === 'pendente' ? (
+                  <button
+                    onClick={() => updateTaskStatus(task.id, 'aguardando_aprovacao')}
+                    className="w-7 h-7 rounded-full border-2 border-primary/40 flex items-center justify-center flex-shrink-0 hover:bg-primary/10 hover:border-primary transition-colors cursor-pointer"
+                    title="Marcar como concluída"
+                  >
+                    <CheckCircle className="w-4 h-4 text-primary/40 hover:text-primary" />
+                  </button>
+                ) : (
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    task.status === 'aguardando_aprovacao' ? 'bg-warning/20' : 'bg-destructive/20'
+                  }`}>
+                    {task.status === 'aguardando_aprovacao'
+                      ? <Clock className="w-4 h-4 text-warning" />
+                      : <XCircle className="w-4 h-4 text-destructive" />
+                    }
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{task.titulo}</p>
+                  <p className="text-xs text-muted-foreground">{statusLabel[task.status] || task.status}</p>
+                </div>
+                {task.valor_recompensa > 0 && (
+                  <span className="text-xs font-semibold text-reward flex-shrink-0">R$ {task.valor_recompensa.toFixed(2)}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -146,7 +211,7 @@ const DashboardPage = () => {
             <Users className="w-4 h-4 text-primary" /> Ranking da família
           </h3>
           <div className="space-y-2">
-            {[...users].sort((a, b) => b.pontos - a.pontos).map((user, i) => (
+            {[...users].filter(u => u.ativo).sort((a, b) => b.pontos - a.pontos).map((user, i) => (
                <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                  <span className="text-lg w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}</span>
                  <Avatar className="w-8 h-8">

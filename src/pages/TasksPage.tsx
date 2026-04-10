@@ -56,11 +56,21 @@ const TasksPage = () => {
     [userTasks, selectedDateStr]
   );
 
+  // All tasks for the visible week (for the summary below calendar)
+  const weekTasksByDay = useMemo(() => {
+    const map: Record<string, typeof userTasks> = {};
+    weekDates.forEach(d => {
+      const ds = toDateStr(d);
+      map[ds] = userTasks.filter(t => t.data_limite === ds);
+    });
+    return map;
+  }, [userTasks, weekDates]);
+
   const taskCountByDay = useMemo(() => {
     const counts: Record<string, { total: number; pending: number; done: number }> = {};
     weekDates.forEach(d => {
       const ds = toDateStr(d);
-      const dayT = userTasks.filter(t => t.data_limite === ds);
+      const dayT = weekTasksByDay[ds] || [];
       counts[ds] = {
         total: dayT.length,
         pending: dayT.filter(t => t.status === 'pendente').length,
@@ -68,7 +78,7 @@ const TasksPage = () => {
       };
     });
     return counts;
-  }, [userTasks, weekDates]);
+  }, [weekTasksByDay, weekDates]);
 
   const activeUsers = users.filter(u => u.ativo);
   const isOverdue = (task: Task) => task.status === 'pendente' && new Date(task.data_limite) < new Date();
