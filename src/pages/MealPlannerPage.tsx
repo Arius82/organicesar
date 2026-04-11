@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Coffee, Sun, Moon, Sparkles, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Coffee, Sun, Moon, Sparkles, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight, Plus, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,7 +32,7 @@ const weekdaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const weekdaysFull = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
 const MealPlannerPage = () => {
-  const { meals, editMeal, deleteMeal } = useApp();
+  const { meals, editMeal, deleteMeal, addMeal } = useApp();
   const { addNotification } = useNotifications();
   
   const [weekOffset, setWeekOffset] = useState(0);
@@ -81,6 +81,31 @@ const MealPlannerPage = () => {
     addNotification('Refeição removida do cardápio', 'success');
   };
 
+  const handleCloneWeek = async () => {
+    const mealsToClone = meals.filter(m => weekDates.includes(m.data));
+    if (mealsToClone.length === 0) {
+      addNotification('Nenhuma refeição para clonar nesta semana.', 'warning');
+      return;
+    }
+    
+    for (const m of mealsToClone) {
+      const d = new Date(m.data + 'T12:00:00');
+      d.setDate(d.getDate() + 7);
+      const nextDateStr = d.toISOString().split('T')[0];
+      
+      const exists = meals.some(existing => existing.data === nextDateStr && existing.refeicao === m.refeicao);
+      if (!exists) {
+        await addMeal({
+          data: nextDateStr,
+          refeicao: m.refeicao as 'cafe' | 'almoco' | 'jantar',
+          descricao: m.descricao,
+          ingredientes_relacionados: m.ingredientes_relacionados,
+        });
+      }
+    }
+    addNotification('Semana copiada com sucesso para a próxima!', 'success');
+  };
+
   return (
     <PageTransition>
       <div className="space-y-6 pb-20">
@@ -88,12 +113,18 @@ const MealPlannerPage = () => {
           <div className="flex items-center justify-between mt-2">
             <h1 className="font-display text-2xl font-bold text-gray-900 tracking-tight">Cardápio</h1>
             
-            <AISuggestionDialog defaultDate={selectedDate}>
-              <Button variant="outline" className="h-9 px-3 gap-1.5 border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 rounded-full shadow-sm">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span className="text-sm font-semibold tracking-wide">Sugestão IA</span>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleCloneWeek} variant="ghost" size="icon" className="h-9 w-9 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-full" title="Clonar refeições desta semana para a próxima">
+                <Copy className="w-4 h-4" />
               </Button>
-            </AISuggestionDialog>
+              <AISuggestionDialog defaultDate={selectedDate}>
+                <Button variant="outline" className="h-9 px-3 gap-1.5 border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 rounded-full shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span className="text-sm font-semibold tracking-wide hidden sm:inline">Sugestão IA</span>
+                  <span className="text-sm font-semibold tracking-wide sm:hidden">IA</span>
+                </Button>
+              </AISuggestionDialog>
+            </div>
           </div>
           
           {/* Calendar Strip */}

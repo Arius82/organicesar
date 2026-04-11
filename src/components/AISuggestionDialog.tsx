@@ -9,6 +9,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/context/NotificationContext';
 import { useApp } from '@/context/AppContext';
 import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MealSuggestion {
   title: string;
@@ -17,7 +21,7 @@ interface MealSuggestion {
 }
 
 export default function AISuggestionDialog({ defaultDate = '', children }: { defaultDate?: string, children?: React.ReactNode }) {
-  const { pantry, addMeal } = useApp();
+  const { pantry, addMeal, addShoppingItem } = useApp();
   const { addNotification } = useNotifications();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,6 +29,11 @@ export default function AISuggestionDialog({ defaultDate = '', children }: { def
   const [aiDate, setAiDate] = useState(defaultDate || new Date().toISOString().split('T')[0]);
   const [aiMealType, setAiMealType] = useState('almoco');
   const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
+
+  // Shopping list prompt state
+  const [showShoppingPrompt, setShowShoppingPrompt] = useState(false);
+  const [missingItems, setMissingItems] = useState<string[]>([]);
+  const [pendingSuggestion, setPendingSuggestion] = useState<MealSuggestion | null>(null);
 
   const handleSuggest = async () => {
     setLoading(true);
@@ -47,108 +56,176 @@ export default function AISuggestionDialog({ defaultDate = '', children }: { def
     setLoading(false);
   };
 
-  const handleUseSuggestion = (s: MealSuggestion) => {
-    addMeal({
+  const handlePreUseSuggestion = (s: MealSuggestion) => {
+    const missing = s.ingredients.filter(ing => 
+      !pantry.some(p => p.nome_item.toLowerCase() === ing.toLowerCase())
+    );
+    
+    if (missing.length > 0) {
+      setMissingItems(missing);
+      setPendingSuggestion(s);
+      setShowShoppingPrompt(true);
+    } else {
+      executeSave(s, []);
+    }
+  };
+
+  const executeSave = async (s: MealSuggestion, itemsToBuy: string[]) => {
+    await addMeal({
       data: aiDate,
       refeicao: aiMealType as 'cafe' | 'almoco' | 'jantar',
       descricao: `${s.title} - ${s.description}`,
       ingredientes_relacionados: s.ingredients,
     });
-    addNotification(`"${s.title}" adicionado ao cardápio!`, 'success');
+    
+    if (itemsToBuy.length > 0) {
+      for (const item of itemsToBuy) {
+        await addShoppingItem({ nome_item: item, quantidade: 1 });
+      }
+      addNotification(`"${s.title}" salvo e itens na lista de compras!`, 'success');
+    } else {
+      addNotification(`"${s.title}" adicionado ao cardápio!`, 'success');
+    }
+    
     setSuggestions(prev => prev.filter(x => x !== s));
+    setShowShoppingPrompt(false);
+    setPendingSuggestion(null);
     setOpen(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-md bg-white border-none shadow-xl rounded-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader className="pb-4 border-b border-gray-100 flex flex-row items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <DialogTitle className="font-display text-gray-900 text-lg font-semibold text-left">Sugestão com IA</DialogTitle>
-            <p className="text-xs text-gray-500 mt-0.5 text-left">Gere ideias baseadas na sua despensa</p>
-          </div>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2.5">
-              <Label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block">Data</Label>
-              <Input type="date" value={aiDate} onChange={e => setAiDate(e.target.value)} className="bg-gray-50/50 border-gray-200 focus-visible:ring-emerald-600 shadow-sm rounded-xl" />
+    <>
+      <Dialog open={open && !showShoppingPrompt} onOpenChange={(o) => {
+        if (!o && showShoppingPrompt) return;
+        setOpen(o);
+      }}>
+        {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+        <DialogContent className="sm:max-w-md bg-white border-none shadow-xl rounded-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-4 border-b border-gray-100 flex flex-row items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 text-emerald-600" />
             </div>
-            <div className="space-y-2.5">
-              <Label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block">Refeição</Label>
-              <Select value={aiMealType} onValueChange={setAiMealType}>
-                <SelectTrigger className="bg-gray-50/50 border-gray-200 focus:ring-emerald-600 shadow-sm rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-gray-100 shadow-xl rounded-xl">
-                  <SelectItem value="cafe" className="focus:bg-emerald-50 cursor-pointer">Café da Manhã</SelectItem>
-                  <SelectItem value="almoco" className="focus:bg-emerald-50 cursor-pointer">Almoço</SelectItem>
-                  <SelectItem value="jantar" className="focus:bg-emerald-50 cursor-pointer">Jantar</SelectItem>
-                </SelectContent>
-              </Select>
+            <div>
+              <DialogTitle className="font-display text-gray-900 text-lg font-semibold text-left">Sugestão com IA</DialogTitle>
+              <p className="text-xs text-gray-500 mt-0.5 text-left">Gere ideias baseadas na sua despensa</p>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2.5">
+                <Label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block">Data</Label>
+                <Input type="date" value={aiDate} onChange={e => setAiDate(e.target.value)} className="bg-gray-50/50 border-gray-200 focus-visible:ring-emerald-600 shadow-sm rounded-xl" />
+              </div>
+              <div className="space-y-2.5">
+                <Label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest block">Refeição</Label>
+                <Select value={aiMealType} onValueChange={setAiMealType}>
+                  <SelectTrigger className="bg-gray-50/50 border-gray-200 focus:ring-emerald-600 shadow-sm rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-gray-100 shadow-xl rounded-xl">
+                    <SelectItem value="cafe" className="focus:bg-emerald-50 cursor-pointer">Café da Manhã</SelectItem>
+                    <SelectItem value="almoco" className="focus:bg-emerald-50 cursor-pointer">Almoço</SelectItem>
+                    <SelectItem value="jantar" className="focus:bg-emerald-50 cursor-pointer">Jantar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleSuggest} 
+              disabled={loading} 
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 rounded-xl py-6 text-base font-medium transition-all active:scale-[0.98] mt-2 gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ChefHat className="w-5 h-5" />}
+              {loading ? 'Gerando ideias mágicas...' : 'Pedir Sugestões'}
+            </Button>
+
+            <AnimatePresence>
+              {suggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-3 pt-4 border-t border-gray-100"
+                >
+                  {suggestions.map((s, i) => (
+                    <motion.div
+                      key={s.title}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="bg-gray-50 border border-gray-100 rounded-xl p-4 transition-all hover:bg-white hover:shadow-sm"
+                    >
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <h4 className="font-display font-bold text-gray-900 text-sm">{s.title}</h4>
+                          <p className="text-xs text-gray-600 mt-1 leading-relaxed">{s.description}</p>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1.5">
+                          {s.ingredients.map(ing => (
+                            <span key={ing} className="text-[10px] uppercase font-medium tracking-wider bg-white text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full">
+                              {ing}
+                            </span>
+                          ))}
+                        </div>
+
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => handlePreUseSuggestion(s)} 
+                          className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg mt-1"
+                        >
+                          Adicionar ao Cardápio
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shopping List Missing Items Prompt */}
+      <AlertDialog open={showShoppingPrompt} onOpenChange={setShowShoppingPrompt}>
+        <AlertDialogContent className="bg-white border-0 shadow-xl rounded-2xl w-[90vw] sm:max-w-[420px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-gray-900 text-xl font-semibold">Itens Faltantes</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500 mt-2">
+              Esta sugestão utiliza ingredientes que não estão na sua despensa. Tem certeza que deseja adicioná-los à lista de compras?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-2">
+            <div className="flex flex-wrap gap-1.5 p-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              {missingItems.map(item => (
+                <span key={item} className="text-xs font-semibold uppercase tracking-wider bg-white text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg">
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
 
-          <Button 
-            onClick={handleSuggest} 
-            disabled={loading} 
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 rounded-xl py-6 text-base font-medium transition-all active:scale-[0.98] mt-2 gap-2"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ChefHat className="w-5 h-5" />}
-            {loading ? 'Gerando ideias mágicas...' : 'Pedir Sugestões'}
-          </Button>
-
-          <AnimatePresence>
-            {suggestions.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-3 pt-4 border-t border-gray-100"
-              >
-                {suggestions.map((s, i) => (
-                  <motion.div
-                    key={s.title}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-gray-50 border border-gray-100 rounded-xl p-4 transition-all hover:bg-white hover:shadow-sm"
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div>
-                        <h4 className="font-display font-bold text-gray-900 text-sm">{s.title}</h4>
-                        <p className="text-xs text-gray-600 mt-1 leading-relaxed">{s.description}</p>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-1.5">
-                        {s.ingredients.map(ing => (
-                          <span key={ing} className="text-[10px] uppercase font-medium tracking-wider bg-white text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full">
-                            {ing}
-                          </span>
-                        ))}
-                      </div>
-
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => handleUseSuggestion(s)} 
-                        className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg mt-1"
-                      >
-                        Adicionar ao Cardápio
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </DialogContent>
-    </Dialog>
+          <AlertDialogFooter className="mt-4 flex flex-row sm:flex-row gap-2 sm:gap-2 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => pendingSuggestion && executeSave(pendingSuggestion, [])}
+              className="flex-1 sm:flex-none border-gray-200"
+            >
+              Não, apenas salvar
+            </Button>
+            <Button 
+              onClick={() => pendingSuggestion && executeSave(pendingSuggestion, missingItems)}
+              className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+            >
+              Sim, adicionar à lista
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

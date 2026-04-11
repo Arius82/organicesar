@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle, ChevronRight, Pencil, Trash2, Utensils } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,7 @@ const statusLabel: Record<string, string> = {
 };
 
 const DashboardPage = () => {
-  const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus, editTask, deleteTask } = useApp();
+  const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus, editTask, deleteTask, meals } = useApp();
   const navigate = useNavigate();
   const [taskDialog, setTaskDialog] = useState<{ title: string; filterFn: (t: Task) => boolean } | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -55,6 +55,7 @@ const DashboardPage = () => {
   if (!currentUser) return null;
 
   const todayStr = toDateStr(new Date());
+  const todayMeals = meals.filter(m => m.data === todayStr);
   const userTasks = isMaster ? tasks : tasks.filter(t => t.usuario_id === currentUser.id);
   const pendingTasks = userTasks.filter(t => t.status === 'pendente');
   const awaitingTasks = userTasks.filter(t => t.status === 'aguardando_aprovacao');
@@ -101,6 +102,29 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Cardápio Shortcut */}
+      <div 
+        className="glass-card rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors border-emerald-100/50"
+        onClick={() => navigate('/meals')}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Utensils className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <h3 className="font-display font-semibold text-foreground">Cardápio de Hoje</h3>
+            <p className="text-xs text-muted-foreground">
+              {todayMeals.length > 0 
+                ? `${todayMeals.length} refeições planejadas para hoje` 
+                : 'Ainda não planejou o que comer hoje? Clique aqui!'}
+            </p>
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" className="text-emerald-600 w-8 h-8 pointer-events-none">
+          <ChevronRight className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Today's tasks */}
