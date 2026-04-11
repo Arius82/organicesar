@@ -331,6 +331,7 @@ const TasksPage = () => {
                       </div>
                     )}
                   </div>
+                  </div>
                 </motion.div>
               </div>
             );
