@@ -151,11 +151,11 @@ const DashboardPage = () => {
       {/* Stats - clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={Clock} label="Pendentes" value={pendingTasks.length} variant="default"
-          onClick={() => setTaskDialog({ title: 'Tarefas Pendentes', tasks: pendingTasks })} />
+          onClick={() => setTaskDialog({ title: 'Tarefas Pendentes', filterFn: t => t.status === 'pendente' })} />
         <StatCard icon={CheckSquare} label="Concluídas" value={completedTasks.length} variant="primary"
-          onClick={() => setTaskDialog({ title: 'Tarefas Concluídas', tasks: completedTasks })} />
+          onClick={() => setTaskDialog({ title: 'Tarefas Concluídas', filterFn: t => t.status === 'concluida' })} />
         <StatCard icon={AlertTriangle} label="Atrasadas" value={overdueTasks.length} variant="warning"
-          onClick={() => setTaskDialog({ title: 'Tarefas Atrasadas', tasks: overdueTasks })} />
+          onClick={() => setTaskDialog({ title: 'Tarefas Atrasadas', filterFn: t => t.status === 'pendente' && new Date(t.data_limite) < new Date() })} />
         {isMaster ? (
           <StatCard icon={Trophy} label="Pago total" value={`R$ ${totalPaid.toFixed(2)}`} variant="reward" />
         ) : (
@@ -164,43 +164,94 @@ const DashboardPage = () => {
       </div>
 
       {/* Task list dialog */}
-      <Dialog open={!!taskDialog} onOpenChange={o => !o && setTaskDialog(null)}>
+      <Dialog open={!!taskDialog} onOpenChange={o => !o && { ...setTaskDialog(null), ...setEditingTask(null) }}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">{taskDialog?.title}</DialogTitle>
           </DialogHeader>
+
+          {/* Edit form */}
+          {editingTask && (
+            <div className="border border-primary/20 rounded-lg p-4 space-y-3 bg-muted/30">
+              <p className="text-sm font-semibold text-foreground">Editar tarefa</p>
+              <Input value={editForm.titulo} onChange={e => setEditForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Título" />
+              <Input value={editForm.descricao} onChange={e => setEditForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição" />
+              <div className="flex gap-2">
+                <Input type="number" value={editForm.valor_recompensa} onChange={e => setEditForm(f => ({ ...f, valor_recompensa: Number(e.target.value) }))} placeholder="Recompensa" className="flex-1" />
+                <Input type="date" value={editForm.data_limite} onChange={e => setEditForm(f => ({ ...f, data_limite: e.target.value }))} className="flex-1" />
+              </div>
+              <DialogFooter className="flex-row gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setEditingTask(null)}>Cancelar</Button>
+                <Button size="sm" onClick={async () => {
+                  await editTask(editingTask.id, {
+                    titulo: editForm.titulo,
+                    descricao: editForm.descricao,
+                    valor_recompensa: editForm.valor_recompensa,
+                    data_limite: editForm.data_limite,
+                  });
+                  toast({ title: 'Tarefa atualizada' });
+                  setEditingTask(null);
+                }}>Salvar</Button>
+              </DialogFooter>
+            </div>
+          )}
+
           <div className="space-y-2 mt-2">
-            {taskDialog?.tasks.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa encontrada</p>
-            )}
-            {taskDialog?.tasks.map(task => {
-              const user = users.find(u => u.id === task.usuario_id);
-              const overdue = task.status === 'pendente' && new Date(task.data_limite) < new Date();
-              return (
-                <div key={task.id} className={`flex items-center gap-3 p-3 rounded-lg bg-muted/50 ${overdue ? 'border border-destructive/30' : ''}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium text-foreground ${task.status === 'concluida' ? 'line-through opacity-60' : ''}`}>{task.titulo}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      {user && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Avatar className="w-4 h-4">
-                            {user.avatar && <AvatarImage src={user.avatar} />}
-                            <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{user.nome[0]}</AvatarFallback>
-                          </Avatar>
-                          {user.nome}
-                        </span>
-                      )}
-                      {task.data_limite && <span className="text-xs text-muted-foreground">{new Date(task.data_limite + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>}
-                      {overdue && <span className="text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">Atrasada</span>}
-                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{statusLabel[task.status] || task.status}</span>
+            {(() => {
+              const filtered = taskDialog ? userTasks.filter(taskDialog.filterFn) : [];
+              if (filtered.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa encontrada</p>;
+              return filtered.map(task => {
+                const user = users.find(u => u.id === task.usuario_id);
+                const overdue = task.status === 'pendente' && new Date(task.data_limite) < new Date();
+                return (
+                  <div key={task.id} className={`flex items-center gap-3 p-3 rounded-lg bg-muted/50 ${overdue ? 'border border-destructive/30' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium text-foreground ${task.status === 'concluida' ? 'line-through opacity-60' : ''}`}>{task.titulo}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {user && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Avatar className="w-4 h-4">
+                              {user.avatar && <AvatarImage src={user.avatar} />}
+                              <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{user.nome[0]}</AvatarFallback>
+                            </Avatar>
+                            {user.nome}
+                          </span>
+                        )}
+                        {task.data_limite && <span className="text-xs text-muted-foreground">{new Date(task.data_limite + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>}
+                        {overdue && <span className="text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">Atrasada</span>}
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{statusLabel[task.status] || task.status}</span>
+                      </div>
                     </div>
+                    {task.valor_recompensa > 0 && (
+                      <span className="text-xs font-semibold text-reward flex-shrink-0 mr-1">R$ {task.valor_recompensa.toFixed(2)}</span>
+                    )}
+                    {isMaster && (
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => { setEditingTask(task); setEditForm({ titulo: task.titulo, descricao: task.descricao, valor_recompensa: task.valor_recompensa, data_limite: task.data_limite }); }}
+                          className="p-1.5 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm('Excluir esta tarefa?')) {
+                              await deleteTask(task.id);
+                              toast({ title: 'Tarefa excluída' });
+                            }
+                          }}
+                          className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {task.valor_recompensa > 0 && (
-                    <span className="text-xs font-semibold text-reward flex-shrink-0">R$ {task.valor_recompensa.toFixed(2)}</span>
-                  )}
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </DialogContent>
       </Dialog>
