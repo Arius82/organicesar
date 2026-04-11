@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Coffee, Sun, Moon, Sparkles, Loader2, ChefHat, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Coffee, Sun, Moon, Sparkles, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AddMealDialog from '@/components/AddMealDialog';
+import AISuggestionDialog from '@/components/AISuggestionDialog';
 import PageTransition from '@/components/PageTransition';
-import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/context/NotificationContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -22,12 +20,6 @@ const mealConfig = {
   jantar: { label: 'Jantar', icon: Moon, emoji: '🌙' },
 };
 
-interface MealSuggestion {
-  title: string;
-  description: string;
-  ingredients: string[];
-}
-
 const getWeekStart = (date: Date) => {
   const d = new Date(date);
   const day = d.getDay();
@@ -36,16 +28,18 @@ const getWeekStart = (date: Date) => {
   return d;
 };
 
+const weekdaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const weekdaysFull = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
 const MealPlannerPage = () => {
-  const { meals, pantry, isMaster, addMeal, editMeal, deleteMeal } = useApp();
+  const { meals, editMeal, deleteMeal } = useApp();
   const { addNotification } = useNotifications();
-  const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [aiMealType, setAiMealType] = useState<string>('almoco');
-  const [aiDate, setAiDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ descricao: '', ingredientes: '' });
-  const [weekOffset, setWeekOffset] = useState(0);
 
   const currentWeekStart = getWeekStart(new Date());
   currentWeekStart.setDate(currentWeekStart.getDate() + weekOffset * 7);
@@ -58,53 +52,8 @@ const MealPlannerPage = () => {
     return d.toISOString().split('T')[0];
   });
 
-  const weekMeals = meals.filter(m => weekDates.includes(m.data));
-
-  const grouped = weekMeals.reduce((acc, meal) => {
-    if (!acc[meal.data]) acc[meal.data] = [];
-    acc[meal.data].push(meal);
-    return acc;
-  }, {} as Record<string, typeof meals>);
-
-  // Show all days of the week, even empty ones
-  const allGrouped = weekDates.reduce((acc, date) => {
-    acc[date] = grouped[date] || [];
-    return acc;
-  }, {} as Record<string, typeof meals>);
-
-  const weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-  const handleSuggest = async () => {
-    setLoading(true);
-    setSuggestions([]);
-    try {
-      const pantryItems = pantry.map(p => p.nome_item);
-      const { data, error } = await supabase.functions.invoke('suggest-meals', {
-        body: { pantryItems, mealType: aiMealType, date: aiDate },
-      });
-      if (error) throw error;
-      if (data?.suggestions) {
-        setSuggestions(data.suggestions);
-      } else if (data?.error) {
-        addNotification(data.error, 'warning');
-      }
-    } catch (err: any) {
-      console.error('AI suggestion error:', err);
-      addNotification('Erro ao gerar sugestões de cardápio', 'warning');
-    }
-    setLoading(false);
-  };
-
-  const handleUseSuggestion = (s: MealSuggestion) => {
-    addMeal({
-      data: aiDate,
-      refeicao: aiMealType as 'cafe' | 'almoco' | 'jantar',
-      descricao: `${s.title} - ${s.description}`,
-      ingredientes_relacionados: s.ingredients,
-    });
-    addNotification(`"${s.title}" adicionado ao cardápio!`, 'success');
-    setSuggestions(prev => prev.filter(x => x !== s));
-  };
+  const selectedDayMeals = meals.filter(m => m.data === selectedDate);
+  const selectedDateObj = new Date(selectedDate + 'T12:00:00');
 
   const startEdit = (meal: typeof meals[0]) => {
     setEditingId(meal.id);
@@ -134,209 +83,206 @@ const MealPlannerPage = () => {
 
   return (
     <PageTransition>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w - 1)}>
-                <ChevronLeft className="w-4 h-4" />
+      <div className="space-y-6 pb-20">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between mt-2">
+            <h1 className="font-display text-2xl font-bold text-gray-900 tracking-tight">Cardápio</h1>
+            
+            <AISuggestionDialog defaultDate={selectedDate}>
+              <Button variant="outline" className="h-9 px-3 gap-1.5 border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 rounded-full shadow-sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="text-sm font-semibold tracking-wide">Sugestão IA</span>
               </Button>
-              <span className="text-xs sm:text-sm font-medium text-foreground text-center">
-                {currentWeekStart.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} — {weekEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-              </span>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w + 1)}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              {weekOffset !== 0 && (
-                <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setWeekOffset(0)}>Hoje</Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">{weekMeals.length} refeições</p>
+            </AISuggestionDialog>
           </div>
-          <AddMealDialog />
+          
+          {/* Calendar Strip */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-gray-600">
+              <span className="text-sm font-medium capitalize">
+                {currentWeekStart.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              </span>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900" onClick={() => { setWeekOffset(w => w - 1); setSelectedDate(''); }}>
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                {weekOffset !== 0 && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs font-medium text-emerald-600" onClick={() => {
+                    setWeekOffset(0);
+                    setSelectedDate(new Date().toISOString().split('T')[0]);
+                  }}>Hoje</Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900" onClick={() => { setWeekOffset(w => w + 1); setSelectedDate(''); }}>
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-2 snap-x hide-scrollbar">
+              {weekDates.map((date, idx) => {
+                const d = new Date(date + 'T12:00:00');
+                // if selectedDate is empty (just switched weeks), default to the first day of that week
+                const isSelected = selectedDate ? date === selectedDate : idx === 0;
+                if (!selectedDate && idx === 0) {
+                  // minor side effect avoidance by doing it via effect in a real app, but here it's fine for simple sync
+                  setTimeout(() => setSelectedDate(date), 0);
+                }
+
+                const isToday = date === new Date().toISOString().split('T')[0];
+                
+                return (
+                  <button
+                    key={date}
+                    onClick={() => setSelectedDate(date)}
+                    className={`flex flex-col items-center justify-center min-w-[3.5rem] p-2.5 rounded-[1.25rem] snap-start transition-all border ${
+                      isSelected 
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-105'
+                        : isToday
+                          ? 'bg-emerald-50 border-emerald-100 text-emerald-900'
+                          : 'bg-white border-gray-100 text-gray-600 hover:border-gray-200'
+                    }`}
+                  >
+                    <span className={`text-[10px] uppercase font-bold tracking-wider opacity-80 ${isSelected ? 'text-emerald-100' : ''}`}>
+                      {weekdaysShort[d.getDay()]}
+                    </span>
+                    <span className={`text-lg font-display font-medium mt-1 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                      {d.getDate()}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        {/* AI Suggestion Section */}
+        {/* Selected Day View */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-card rounded-xl p-5 space-y-4 border-primary/20"
+          key={selectedDate}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="space-y-4"
         >
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h3 className="font-display font-semibold text-foreground text-sm">Sugestão com IA</h3>
-              <p className="text-xs text-muted-foreground">Gere ideias de refeições baseadas na sua despensa</p>
-            </div>
+          <div className="flex flex-col">
+            <h2 className="font-display text-lg font-semibold text-gray-900 leading-tight">
+              {weekdaysFull[selectedDateObj.getDay()]}
+            </h2>
+            <p className="text-sm text-gray-500 capitalize">{selectedDateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Data</Label>
-              <Input type="date" value={aiDate} onChange={e => setAiDate(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Refeição</Label>
-              <Select value={aiMealType} onValueChange={setAiMealType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cafe">Café da Manhã</SelectItem>
-                  <SelectItem value="almoco">Almoço</SelectItem>
-                  <SelectItem value="jantar">Jantar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleSuggest} disabled={loading} className="w-full gradient-primary text-primary-foreground gap-1.5">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChefHat className="w-4 h-4" />}
-                {loading ? 'Gerando...' : 'Sugerir'}
-              </Button>
-            </div>
-          </div>
+          <div className="flex flex-col gap-4">
+            {(['cafe', 'almoco', 'jantar'] as const).map(type => {
+              const meal = selectedDayMeals.find(m => m.refeicao === type);
+              const cfg = mealConfig[type];
+              const isEditing = meal && editingId === meal.id;
 
-          <AnimatePresence>
-            {suggestions.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-3 overflow-hidden"
-              >
-                {suggestions.map((s, i) => (
-                  <motion.div
-                    key={s.title}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-muted/50 rounded-lg p-4 border border-border/50"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-display font-semibold text-foreground text-sm">{s.title}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">{s.description}</p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {s.ingredients.map(ing => (
-                            <span key={ing} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{ing}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <Button size="sm" variant="outline" onClick={() => handleUseSuggestion(s)} className="shrink-0 text-xs">
-                        Usar
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+              return (
+                <div key={type} className="flex flex-col w-full">
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <span className="text-lg">{cfg.emoji}</span>
+                    <h3 className="font-semibold text-gray-900 text-sm">{cfg.label}</h3>
+                  </div>
 
-        {/* Existing Meals */}
-        {Object.entries(allGrouped).map(([date, dayMeals]) => {
-          const d = new Date(date + 'T12:00:00');
-          return (
-            <motion.div
-              key={date}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3 className="font-display font-semibold text-foreground mb-3">
-                {weekdays[d.getDay()]}, {d.toLocaleDateString('pt-BR')}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {(['cafe', 'almoco', 'jantar'] as const).map(type => {
-                  const meal = dayMeals.find(m => m.refeicao === type);
-                  const cfg = mealConfig[type];
-                  const isEditing = meal && editingId === meal.id;
-                  return (
-                    <motion.div
-                      key={type}
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ type: 'spring', stiffness: 300 }}
-                      className="glass-card rounded-xl p-4"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{cfg.emoji}</span>
-                          <h4 className="text-sm font-medium text-foreground">{cfg.label}</h4>
-                        </div>
-                        {meal && !isEditing && (
-                          <div className="flex items-center gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(meal)}>
-                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-7 w-7">
-                                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Excluir refeição?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza que deseja remover "{meal.descricao}" do cardápio?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(meal.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        )}
-                      </div>
-                      {meal ? (
-                        isEditing ? (
-                          <div className="space-y-2">
+                  {meal ? (
+                    <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm transition-all hover:shadow-md">
+                      <div className="flex items-start justify-between gap-3">
+                        {isEditing ? (
+                          <div className="space-y-3 w-full">
                             <Textarea
                               value={editForm.descricao}
                               onChange={e => setEditForm(f => ({ ...f, descricao: e.target.value }))}
-                              className="text-sm min-h-[60px]"
+                              className="text-sm min-h-[80px] bg-gray-50/50 border-gray-200 focus-visible:ring-emerald-600 rounded-xl"
                               placeholder="Descrição da refeição"
                             />
                             <Input
                               value={editForm.ingredientes}
                               onChange={e => setEditForm(f => ({ ...f, ingredientes: e.target.value }))}
-                              className="text-sm"
+                              className="text-sm bg-gray-50/50 border-gray-200 focus-visible:ring-emerald-600 rounded-xl"
                               placeholder="Ingredientes separados por vírgula"
                             />
-                            <div className="flex gap-1.5 justify-end">
-                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-7 px-2 text-xs">
-                                <X className="w-3.5 h-3.5 mr-1" /> Cancelar
+                            <div className="flex gap-2 justify-end pt-1">
+                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-8 rounded-lg text-gray-500 hover:text-gray-700">
+                                <X className="w-4 h-4 mr-1.5" /> Cancelar
                               </Button>
-                              <Button size="sm" onClick={() => saveEdit(meal.id)} className="h-7 px-2 text-xs gradient-primary text-primary-foreground">
-                                <Check className="w-3.5 h-3.5 mr-1" /> Salvar
+                              <Button size="sm" onClick={() => saveEdit(meal.id)} className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+                                <Check className="w-4 h-4 mr-1.5" /> Salvar
                               </Button>
                             </div>
                           </div>
                         ) : (
                           <>
-                            <p className="text-sm text-foreground">{meal.descricao}</p>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {meal.ingredientes_relacionados.map(ing => (
-                                <span key={ing} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{ing}</span>
-                              ))}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[15px] font-medium text-gray-800 leading-relaxed">{meal.descricao}</p>
+                              {meal.ingredientes_relacionados.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-3">
+                                  {meal.ingredientes_relacionados.map(ing => (
+                                    <span key={ing} className="text-[10px] uppercase font-bold tracking-wider bg-gray-50 text-gray-500 border border-gray-100 px-2 py-0.5 rounded-full">
+                                      {ing}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-col items-center gap-1 shrink-0 -mt-1 -mr-1">
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg" onClick={() => startEdit(meal)}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-white border-0 shadow-xl rounded-2xl w-[90vw] sm:max-w-[400px]">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="font-display">Excluir refeição?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-gray-500">
+                                      Tem certeza que deseja remover "{meal.descricao}" do cardápio?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="border-gray-200">Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(meal.id)} className="bg-red-500 hover:bg-red-600 text-white">
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           </>
-                        )
-                      ) : (
-                        <p className="text-sm text-muted-foreground italic">Não planejado</p>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          );
-        })}
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <AddMealDialog defaultDate={selectedDate} defaultMeal={type as any}>
+                      <button className="w-full h-24 border-2 border-dashed border-gray-200 bg-gray-50/50 hover:bg-gray-50 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors group">
+                        <div className="w-8 h-8 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <Plus className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">
+                          Adicionar Refeição
+                        </span>
+                      </button>
+                    </AddMealDialog>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
       </div>
+      
+      {/* Inject custom styles that aren't purely tailwind to hide scrollbar nicely */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+      `}</style>
     </PageTransition>
   );
 };
