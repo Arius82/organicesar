@@ -46,9 +46,11 @@ const statusLabel: Record<string, string> = {
 };
 
 const DashboardPage = () => {
-  const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus } = useApp();
+  const { currentUser, tasks, users, isMaster, rewards, updateTaskStatus, editTask, deleteTask } = useApp();
   const navigate = useNavigate();
-  const [taskDialog, setTaskDialog] = useState<{ title: string; tasks: Task[] } | null>(null);
+  const [taskDialog, setTaskDialog] = useState<{ title: string; filterFn: (t: Task) => boolean } | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editForm, setEditForm] = useState({ titulo: '', descricao: '', valor_recompensa: 0, data_limite: '' });
 
   if (!currentUser) return null;
 
