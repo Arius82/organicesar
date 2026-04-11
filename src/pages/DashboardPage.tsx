@@ -134,7 +134,7 @@ const DashboardPage = () => {
             <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" /> Tarefas de hoje
             </h3>
-            <Button variant="ghost" size="sm" className="text-xs h-7 text-primary" onClick={() => navigate('/tasks')}>
+            <Button variant="ghost" size="sm" className="text-xs h-7 text-primary" onClick={() => navigate('/tarefas')}>
               Ver todas <ChevronRight className="w-3 h-3 ml-1" />
             </Button>
           </div>
