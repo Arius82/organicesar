@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
+import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap, CheckCircle, XCircle, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import type { Task } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 const toDateStr = (d: Date) => d.toISOString().split('T')[0];
 
