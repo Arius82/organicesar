@@ -10,6 +10,7 @@ const DISMISS_KEY = 'pwa-install-dismissed';
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
@@ -17,6 +18,16 @@ export function useInstallPrompt() {
     const wasDismissed = localStorage.getItem(DISMISS_KEY) === 'true';
 
     if (isStandalone || wasDismissed) return;
+
+    // Detecção nativa de iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    
+    if (isIOSDevice) {
+      setIsIOS(true);
+      setCanInstall(true); // iOS não tem trigger nativo, então ativamos manualmente a box.
+      return;
+    }
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -44,5 +55,5 @@ export function useInstallPrompt() {
     setDeferredPrompt(null);
   };
 
-  return { canInstall, promptInstall, dismissInstall };
+  return { canInstall, isIOS, promptInstall, dismissInstall };
 }
