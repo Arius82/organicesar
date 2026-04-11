@@ -104,6 +104,32 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* Alerta de Foco (RACE - Convert) para os membros da família */}
+      {!isMaster && overdueTasks.length > 0 && (
+        <div className="bg-destructive/5 border-2 border-destructive/30 rounded-2xl p-5 relative overflow-hidden ring-4 ring-destructive/10">
+          <div className="absolute -top-4 -right-2 p-4 opacity-5">
+             <AlertTriangle className="w-32 h-32 text-destructive" />
+          </div>
+          <div className="relative z-10 flex gap-4 items-center">
+            <div className="bg-destructive/20 p-3 rounded-full animate-pulse shadow-lg shadow-destructive/20">
+              <AlertTriangle className="w-7 h-7 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-display font-bold text-lg text-destructive leading-none mb-1">Ação Crítica Necessária</h3>
+              <p className="text-sm text-muted-foreground">
+                Você tem <strong>{overdueTasks.length}</strong> tarefa(s) atrasada(s). Evite perder pontos mantendo-se em dia!
+              </p>
+            </div>
+            <Button 
+              onClick={() => setTaskDialog({ title: 'Tarefas Atrasadas', filterFn: t => t.status === 'pendente' && new Date(t.data_limite) < new Date() })}
+              variant="destructive" className="font-bold shadow-md hover:scale-105 transition-transform"
+            >
+              Resolver Agora
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Cardápio Shortcut */}
       <div 
         className="glass-card rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors border-emerald-100/50"
@@ -282,10 +308,28 @@ const DashboardPage = () => {
 
       {/* Awaiting approval (master) */}
       {isMaster && awaitingTasks.length > 0 && (
-        <div className="glass-card rounded-xl p-4">
-          <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-warning" /> Aguardando aprovação ({awaitingTasks.length})
-          </h3>
+        <div className="glass-card rounded-xl p-4 border-warning/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+              <Zap className="w-5 h-5 text-warning animate-pulse" /> Aguardando aprovação ({awaitingTasks.length})
+            </h3>
+            {awaitingTasks.length > 1 && (
+              <Button 
+                onClick={async () => {
+                  try {
+                    await Promise.all(awaitingTasks.map(t => updateTaskStatus(t.id, 'concluida')));
+                    toast({ title: 'Todas as tarefas foram aprovadas!' });
+                  } catch (e) {
+                    toast({ title: 'Erro ao aprovar', variant: 'destructive' });
+                  }
+                }}
+                size="sm" 
+                className="bg-warning text-warning-foreground hover:bg-warning/90 font-bold shadow-md shadow-warning/20 transition-transform hover:scale-105 h-8"
+              >
+                <CheckCircle className="w-4 h-4 mr-1.5" /> Aprovar Tudo
+              </Button>
+            )}
+          </div>
           <div className="space-y-2">
             {awaitingTasks.map(task => {
               const user = users.find(u => u.id === task.usuario_id);

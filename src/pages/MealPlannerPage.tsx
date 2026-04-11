@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Coffee, Sun, Moon, Sparkles, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight, Plus, Copy } from 'lucide-react';
+import { Coffee, Sun, Moon, Sparkles, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight, Plus, Copy, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,7 +32,7 @@ const weekdaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const weekdaysFull = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
 const MealPlannerPage = () => {
-  const { meals, editMeal, deleteMeal, addMeal } = useApp();
+  const { meals, editMeal, deleteMeal, addMeal, addShoppingItem } = useApp();
   const { addNotification } = useNotifications();
   
   const [weekOffset, setWeekOffset] = useState(0);
@@ -106,6 +106,29 @@ const MealPlannerPage = () => {
     addNotification('Semana copiada com sucesso para a próxima!', 'success');
   };
 
+  const handleSendToShoppingList = async () => {
+    const mealsThisWeek = meals.filter(m => weekDates.includes(m.data));
+    const allIngredients = mealsThisWeek.flatMap(m => m.ingredientes_relacionados || []);
+    
+    const uniqueIngredients = [...new Set(allIngredients.map(i => i.trim().toLowerCase()))].filter(Boolean);
+    
+    if (uniqueIngredients.length === 0) {
+      addNotification('Nenhum ingrediente encontrado no cardápio desta semana.', 'warning');
+      return;
+    }
+    
+    // In a real app we'd Promise.all, but supabase insert handles it ok enough
+    for (const item of uniqueIngredients) {
+      try {
+        await addShoppingItem({ nome_item: item.charAt(0).toUpperCase() + item.slice(1), quantidade: 1 });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    
+    addNotification(`${uniqueIngredients.length} ingredientes enviados para a lista de compras!`, 'success');
+  };
+
   return (
     <PageTransition>
       <div className="space-y-6 pb-20">
@@ -114,6 +137,9 @@ const MealPlannerPage = () => {
             <h1 className="font-display text-2xl font-bold text-gray-900 tracking-tight">Cardápio</h1>
             
             <div className="flex items-center gap-2">
+              <Button onClick={handleSendToShoppingList} variant="ghost" size="icon" className="h-9 w-9 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-full" title="Enviar ingredientes desta semana para a Lista de Compras">
+                <ShoppingCart className="w-4 h-4" />
+              </Button>
               <Button onClick={handleCloneWeek} variant="ghost" size="icon" className="h-9 w-9 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-full" title="Clonar refeições desta semana para a próxima">
                 <Copy className="w-4 h-4" />
               </Button>

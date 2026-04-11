@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
+import { motion, PanInfo } from 'framer-motion';
 import { CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, ChevronLeft, Pencil, Trash2, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -247,10 +248,29 @@ const TasksPage = () => {
             const StatusIcon = status.icon;
             const user = users.find(u => u.id === task.usuario_id);
             const overdue = isOverdue(task);
+            const canComplete = task.status === 'pendente' && task.usuario_id === currentUser?.id;
 
             return (
-              <div key={task.id} className={`glass-card rounded-xl p-4 animate-fade-in ${overdue ? 'border-destructive/30' : ''} ${task.status === 'concluida' ? 'opacity-60' : ''}`}>
-                <div className="flex items-start gap-3">
+              <div key={task.id} className={`relative overflow-hidden rounded-xl animate-fade-in ${overdue ? 'border border-destructive/30' : ''} ${task.status === 'concluida' ? 'opacity-60' : ''}`}>
+                {canComplete && (
+                  <div className="absolute inset-0 bg-primary/20 flex items-center px-5">
+                    <CheckCircle2 className="w-5 h-5 text-primary opacity-80" />
+                    <span className="ml-2 text-sm font-semibold tracking-wide text-primary opacity-80">Finalizar Tarefa</span>
+                  </div>
+                )}
+                <motion.div
+                  drag={canComplete ? "x" : false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={{ left: 0, right: 0.4 }}
+                  onDragEnd={(_, info: PanInfo) => {
+                    if (canComplete && info.offset.x > 80) {
+                      updateTaskStatus(task.id, 'aguardando_aprovacao');
+                    }
+                  }}
+                  className={`glass-card p-4 relative z-10 w-full h-full ${canComplete ? 'cursor-grab active:cursor-grabbing touched:cursor-grabbing' : ''}`}
+                  whileDrag={canComplete ? { scale: 0.98, x: 2 } : {}}
+                >
+                  <div className="flex items-start gap-3">
                   {/* Clickable check for assignee or status icon */}
                   {task.status === 'pendente' && task.usuario_id === currentUser?.id ? (
                     <button
@@ -311,7 +331,7 @@ const TasksPage = () => {
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               </div>
             );
           })}
