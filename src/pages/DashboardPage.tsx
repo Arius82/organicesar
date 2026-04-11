@@ -164,7 +164,7 @@ const DashboardPage = () => {
       </div>
 
       {/* Task list dialog */}
-      <Dialog open={!!taskDialog} onOpenChange={o => !o && { ...setTaskDialog(null), ...setEditingTask(null) }}>
+      <Dialog open={!!taskDialog} onOpenChange={o => { if (!o) { setTaskDialog(null); setEditingTask(null); } }}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">{taskDialog?.title}</DialogTitle>
