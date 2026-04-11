@@ -107,7 +107,7 @@ const DashboardPage = () => {
       {/* Cardápio Shortcut */}
       <div 
         className="glass-card rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors border-emerald-100/50"
-        onClick={() => navigate('/meals')}
+        onClick={() => navigate('/cardapio')}
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
