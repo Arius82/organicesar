@@ -209,10 +209,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const toggleShoppingItem = useCallback(async (itemId: string) => {
     const item = shopping.find(i => i.id === itemId);
     if (!item) return;
+
+    if (item.status === 'pendente') {
+      // Sincronização inteligente com a Despensa
+      const normalizedReqName = item.nome_item.trim().toLowerCase();
+      const existingInPantry = pantry.find(p => p.nome_item.trim().toLowerCase() === normalizedReqName);
+
+      if (existingInPantry) {
+        await supabase.from('pantry_items')
+          .update({ quantidade: existingInPantry.quantidade + item.quantidade })
+          .eq('id', existingInPantry.id);
+      } else {
+        await supabase.from('pantry_items')
+          .insert({
+            nome_item: item.nome_item,
+            quantidade: item.quantidade,
+            quantidade_minima: 1,
+            categoria: 'Outros'
+          });
+      }
+    }
+
     await supabase.from('shopping_items').update({
       status: item.status === 'pendente' ? 'comprado' : 'pendente',
     }).eq('id', itemId);
-  }, [shopping]);
+  }, [shopping, pantry]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => {
     const { error } = await supabase.from('tasks').insert({
