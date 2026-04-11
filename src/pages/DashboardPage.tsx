@@ -4,7 +4,7 @@ import { CheckSquare, Clock, AlertTriangle, Trophy, Users, TrendingUp, Star, Zap
 import PageTransition from '@/components/PageTransition';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import type { Task } from '@/types';
