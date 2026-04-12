@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import CreateTaskDialog from '@/components/CreateTaskDialog';
 import WeekdayPicker from '@/components/WeekdayPicker';
+import ModernTimePicker from '@/components/ui/ModernTimePicker';
 import { useToast } from '@/hooks/use-toast';
 import { useAlarms } from '@/context/AlarmContext';
 import { Switch } from '@/components/ui/switch';
@@ -492,14 +493,12 @@ const TasksPage = () => {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="space-y-4 pt-2 border-t border-primary/10"
                   >
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 items-end">
                       <div className="space-y-2">
                         <Label className="text-xs">Horário</Label>
-                        <Input 
-                          type="time" 
+                        <ModernTimePicker 
                           value={editForm.alarme_hora} 
-                          onChange={e => setEditForm(f => ({ ...f, alarme_hora: e.target.value }))}
-                          className="bg-background"
+                          onChange={val => setEditForm(f => ({ ...f, alarme_hora: val }))}
                         />
                       </div>
                       <div className="space-y-2">
@@ -528,10 +527,25 @@ const TasksPage = () => {
                       onClick={() => {
                         const sound = soundOptions.find(s => s.id === editForm.alarme_som);
                         if (sound) {
-                          const audio = new Audio(sound.url);
-                          audio.play().catch(() => {});
-                          setTimeout(() => audio.pause(), 3000);
-                          toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                          try {
+                            const audio = new Audio(sound.url);
+                            audio.crossOrigin = "anonymous";
+                            audio.volume = 1.0;
+                            const playPromise = audio.play();
+                            if (playPromise !== undefined) {
+                              playPromise.catch(e => {
+                                console.error('Preview error:', e);
+                                toast({ title: 'Aviso de Áudio', description: 'Clique novamente para reproduzir.' });
+                              });
+                            }
+                            setTimeout(() => {
+                              audio.pause();
+                              audio.src = "";
+                            }, 4000);
+                            toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                          } catch (err) {
+                            console.error('Audio Setup Error:', err);
+                          }
                         }
                       }}
                     >

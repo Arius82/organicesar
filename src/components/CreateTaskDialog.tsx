@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAlarms } from '@/context/AlarmContext';
 import WeekdayPicker from '@/components/WeekdayPicker';
 import { Switch } from '@/components/ui/switch';
+import ModernTimePicker from './ui/ModernTimePicker';
 import type { TaskFrequency } from '@/types';
 
 interface CreateTaskDialogProps {
@@ -168,14 +169,12 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
                 animate={{ opacity: 1, height: 'auto' }}
                 className="space-y-4 pt-2 border-t border-primary/10"
               >
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 items-end">
                   <div className="space-y-2">
                     <Label className="text-xs">Horário</Label>
-                    <Input 
-                      type="time" 
+                    <ModernTimePicker 
                       value={form.alarme_hora} 
-                      onChange={e => setForm(f => ({ ...f, alarme_hora: e.target.value }))}
-                      className="bg-background"
+                      onChange={val => setForm(f => ({ ...f, alarme_hora: val }))}
                     />
                   </div>
                   <div className="space-y-2">
@@ -204,10 +203,25 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
                   onClick={() => {
                     const sound = soundOptions.find(s => s.id === form.alarme_som);
                     if (sound) {
-                      const audio = new Audio(sound.url);
-                      audio.play().catch(() => {});
-                      setTimeout(() => audio.pause(), 3000);
-                      toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                      try {
+                        const audio = new Audio(sound.url);
+                        audio.crossOrigin = "anonymous";
+                        audio.volume = 1.0;
+                        const playPromise = audio.play();
+                        if (playPromise !== undefined) {
+                          playPromise.catch(e => {
+                            console.error('Preview error:', e);
+                            toast({ title: 'Aviso de Áudio', description: 'Clique novamente para reproduzir se houver bloqueio do navegador.' });
+                          });
+                        }
+                        setTimeout(() => {
+                          audio.pause();
+                          audio.src = "";
+                        }, 4000);
+                        toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                      } catch (err) {
+                        console.error('Audio Setup Error:', err);
+                      }
                     }
                   }}
                 >

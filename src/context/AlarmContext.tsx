@@ -18,11 +18,11 @@ export const useAlarms = () => {
 };
 
 const SOUND_OPTIONS = [
-  { id: 1, name: 'Digital Padrão', url: 'https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3' },
-  { id: 2, name: 'Clássico',       url: 'https://assets.mixkit.co/sfx/preview/mixkit-classic-alarm-995.mp3' },
-  { id: 3, name: 'Despertar',     url: 'https://assets.mixkit.co/sfx/preview/mixkit-morning-clock-alarm-1003.mp3' },
-  { id: 4, name: 'Sinos Suaves',   url: 'https://assets.mixkit.co/sfx/preview/mixkit-modern-classic-door-bell-sound-121.mp3' },
-  { id: 5, name: 'Natureza',       url: 'https://assets.mixkit.co/sfx/preview/mixkit-nature-birds-singing-24.mp3' },
+  { id: 1, name: 'Digital Padrão', url: 'https://cdn.jsdelivr.net/gh/rafaelreis-hotmart/Alarm-Clock@master/sounds/alarm.mp3' },
+  { id: 2, name: 'Clássico',       url: 'https://cdn.jsdelivr.net/gh/rafaelreis-hotmart/Alarm-Clock@master/sounds/alarm.mp3' },
+  { id: 3, name: 'Toque Curto',    url: 'https://raw.githubusercontent.com/freeCodeCamp/cdn/master/build/testable-projects-fcc/audio/BeepSound.wav' },
+  { id: 4, name: 'Sino Digital',   url: 'https://cdn.jsdelivr.net/gh/rafaelreis-hotmart/Alarm-Clock@master/sounds/alarm.mp3' },
+  { id: 5, name: 'Alerta Forte',   url: 'https://raw.githubusercontent.com/freeCodeCamp/cdn/master/build/testable-projects-fcc/audio/BeepSound.wav' },
 ];
 
 export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -37,11 +37,9 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     isCurrentlyRinging.current = !!ringingTask;
   }, [ringingTask]);
 
-  // Helper to check if task is visible today
   const isTaskDueToday = (task: Task): boolean => {
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
-    
     if (task.excecoes?.includes(dateStr)) return false;
 
     if (task.dias_semana && task.dias_semana.length > 0) {
@@ -69,16 +67,28 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     const sound = SOUND_OPTIONS.find(s => s.id === task.alarme_som) || SOUND_OPTIONS[0];
     if (audioRef.current) {
-      audioRef.current.src = sound.url;
-      audioRef.current.loop = true;
-      audioRef.current.play().catch(err => console.error('Error playing alarm:', err));
+      try {
+        audioRef.current.src = sound.url;
+        audioRef.current.loop = true;
+        audioRef.current.volume = 1.0;
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.error('Playback error:', err);
+          });
+        }
+      } catch (e) {
+        console.error('Audio setup error:', e);
+      }
     }
 
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(`ALERTA: ${task.titulo}`, {
-        body: task.descricao || 'Hora de realizar sua tarefa!',
-        requireInteraction: true,
-      });
+      try {
+        new Notification(`ALERTA: ${task.titulo}`, {
+          body: task.descricao || 'Hora de realizar sua tarefa!',
+          requireInteraction: true,
+        });
+      } catch (e) {}
     }
 
     if ('vibrate' in navigator) navigator.vibrate([500, 200, 500]);
@@ -109,13 +119,13 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     };
 
-    const interval = setInterval(checkAlarms, 10000); // Check every 10s
+    const interval = setInterval(checkAlarms, 10000); 
     return () => clearInterval(interval);
   }, [tasks, triggerAlarm]);
 
   return (
     <AlarmContext.Provider value={{ ringingTask, stopAlarm, triggerAlarm, soundOptions: SOUND_OPTIONS }}>
-      <audio ref={audioRef} />
+      <audio ref={audioRef} crossOrigin="anonymous" />
       {children}
     </AlarmContext.Provider>
   );

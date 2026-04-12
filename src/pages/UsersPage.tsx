@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useNotifications } from '@/context/NotificationContext';
 import InviteMemberDialog from '@/components/InviteMemberDialog';
 import WeekdayPicker from '@/components/WeekdayPicker';
+import ModernTimePicker from '@/components/ui/ModernTimePicker';
 import { useToast } from '@/hooks/use-toast';
 import { useAlarms } from '@/context/AlarmContext';
 import { Loader2, Bell, Volume2 } from 'lucide-react';
@@ -434,11 +435,10 @@ const UsersPage = () => {
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-primary/10">
                         <div className="space-y-1">
                           <Label className="text-[10px]">Horário</Label>
-                          <Input 
-                            type="time" 
+                          <ModernTimePicker 
                             value={newTaskForm.alarme_hora} 
-                            onChange={e => setNewTaskForm(f => ({ ...f, alarme_hora: e.target.value }))}
-                            className="h-8 text-xs bg-background"
+                            onChange={val => setNewTaskForm(f => ({ ...f, alarme_hora: val }))}
+                            className="scale-90 origin-left"
                           />
                         </div>
                         <div className="space-y-1">
@@ -465,9 +465,25 @@ const UsersPage = () => {
                           onClick={() => {
                             const sound = soundOptions.find(s => s.id === newTaskForm.alarme_som);
                             if (sound) {
-                              const audio = new Audio(sound.url);
-                              audio.play().catch(() => {});
-                              setTimeout(() => audio.pause(), 3000);
+                              try {
+                                const audio = new Audio(sound.url);
+                                audio.crossOrigin = "anonymous";
+                                audio.volume = 1.0;
+                                const playPromise = audio.play();
+                                if (playPromise !== undefined) {
+                                  playPromise.catch(e => {
+                                    console.error('Preview error:', e);
+                                    toast({ title: 'Aviso de Áudio', description: 'Clique novamente para reproduzir.' });
+                                  });
+                                }
+                                setTimeout(() => {
+                                  audio.pause();
+                                  audio.src = "";
+                                }, 4000);
+                                toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                              } catch (err) {
+                                console.error('Audio Setup Error:', err);
+                              }
                             }
                           }}
                         >
@@ -657,6 +673,84 @@ const UsersPage = () => {
                 <Input type="date" value={taskForm.data_limite} onChange={e => setTaskForm(f => ({ ...f, data_limite: e.target.value }))} required />
               </div>
             </div>
+
+            {/* Alarm Settings - Edit Task */}
+            <div className="space-y-4 p-4 rounded-2xl border-2 border-primary/10 bg-primary/5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className={`w-4 h-4 ${taskForm.alarme_ativo ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <Label className="font-semibold">Acionar Alarme</Label>
+                </div>
+                <Switch 
+                  checked={taskForm.alarme_ativo} 
+                  onCheckedChange={v => setTaskForm(f => ({ ...f, alarme_ativo: v }))} 
+                />
+              </div>
+
+              {taskForm.alarme_ativo && (
+                <div className="space-y-4 pt-2 border-t border-primary/10">
+                  <div className="grid grid-cols-2 gap-3 items-end">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Horário</Label>
+                      <ModernTimePicker 
+                        value={taskForm.alarme_hora} 
+                        onChange={val => setTaskForm(f => ({ ...f, alarme_hora: val }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Toque</Label>
+                      <Select 
+                        value={taskForm.alarme_som.toString()} 
+                        onValueChange={v => setTaskForm(f => ({ ...f, alarme_som: Number(v) }))}
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {soundOptions.map(s => (
+                            <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full text-xs h-8 gap-2 border-primary/20 hover:bg-primary/10 transition-colors"
+                    onClick={() => {
+                      const sound = soundOptions.find(s => s.id === taskForm.alarme_som);
+                      if (sound) {
+                        try {
+                          const audio = new Audio(sound.url);
+                          audio.crossOrigin = "anonymous";
+                          audio.volume = 1.0;
+                          const playPromise = audio.play();
+                          if (playPromise !== undefined) {
+                            playPromise.catch(e => {
+                                console.error('Preview error:', e);
+                                toast({ title: 'Aviso de Áudio', description: 'Clique novamente para reproduzir.' });
+                            });
+                          }
+                          setTimeout(() => {
+                            audio.pause();
+                            audio.src = "";
+                          }, 4000);
+                          toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                        } catch (err) {
+                          console.error('Audio Setup Error:', err);
+                        }
+                      }
+                    }}
+                  >
+                    <Volume2 className="w-3 h-3" /> Testar Som Selecionado
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <Button
               type="submit"
               className="w-full gradient-primary text-primary-foreground"
