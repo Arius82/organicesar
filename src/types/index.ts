@@ -28,6 +28,8 @@ export interface Task {
   data_criacao: string;
   data_limite: string;
   data_conclusao?: string;
+  /** Dias da semana: 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb */
+  dias_semana?: number[];
 }
 
 export type RewardType = 'credito' | 'debito';

@@ -106,6 +106,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
         status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
         data_conclusao: t.data_conclusao || undefined,
+        dias_semana: (t as any).dias_semana || undefined,
       })));
       if (rewardsRes.data) setRewards(rewardsRes.data.map(r => ({
         id: r.id, usuario_id: r.usuario_id, valor: Number(r.valor),
@@ -140,6 +141,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
       status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
       data_conclusao: t.data_conclusao || undefined,
+      dias_semana: (t as any).dias_semana || undefined,
     })));
   }, []);
 
@@ -240,6 +242,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       titulo: task.titulo, descricao: task.descricao, usuario_id: task.usuario_id,
       frequencia: task.frequencia, valor_recompensa: task.valor_recompensa,
       data_limite: task.data_limite, created_by: authUser?.id,
+      dias_semana: task.dias_semana && task.dias_semana.length > 0 ? task.dias_semana : null,
     });
     if (error) {
       console.error('Error adding task:', error);
@@ -249,7 +252,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [authUser, fetchTasks]);
 
   const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => {
-    const { error } = await supabase.from('tasks').update(data).eq('id', taskId);
+    const payload = {
+      ...data,
+      dias_semana: data.dias_semana && data.dias_semana.length > 0 ? data.dias_semana : null,
+    };
+    const { error } = await supabase.from('tasks').update(payload).eq('id', taskId);
     if (error) console.error('Error editing task:', error);
     else await fetchTasks();
   }, [fetchTasks]);

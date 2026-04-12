@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useNotifications } from '@/context/NotificationContext';
+import WeekdayPicker from '@/components/WeekdayPicker';
 import type { TaskFrequency } from '@/types';
 
 interface CreateTaskDialogProps {
@@ -21,9 +22,11 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
   const [form, setForm] = useState({
     titulo: '', descricao: '', usuario_id: '', frequencia: 'unica' as TaskFrequency,
     valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0],
+    dias_semana: [] as number[],
   });
 
   const activeUsers = users.filter(u => u.ativo);
+  const showWeekdayPicker = form.frequencia === 'diaria' || form.frequencia === 'semanal';
 
   // Update date when defaultDate changes and dialog is closed
   useEffect(() => {
@@ -32,9 +35,18 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
     }
   }, [defaultDate, open]);
 
+  // Clear dias_semana when switching to non-recurring frequency
+  useEffect(() => {
+    if (!showWeekdayPicker) {
+      setForm(f => ({ ...f, dias_semana: [] }));
+    }
+  }, [form.frequencia, showWeekdayPicker]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.titulo.trim() || (!isMaster && !currentUser) || (isMaster && !form.usuario_id) || !form.data_limite) return;
+    if (showWeekdayPicker && form.dias_semana.length === 0) return; // require at least one day
+
     addTask({
       titulo: form.titulo.trim(),
       descricao: form.descricao.trim(),
@@ -42,10 +54,11 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
       frequencia: form.frequencia,
       valor_recompensa: isMaster ? (parseFloat(form.valor_recompensa) || 0) : 0,
       data_limite: form.data_limite,
+      dias_semana: showWeekdayPicker ? form.dias_semana : undefined,
     });
     const userName = isMaster ? users.find(u => u.id === form.usuario_id)?.nome : currentUser?.nome;
     addNotification(`Nova tarefa "${form.titulo}" atribuída a ${userName}`, 'info');
-    setForm({ titulo: '', descricao: '', usuario_id: '', frequencia: 'unica', valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0] });
+    setForm({ titulo: '', descricao: '', usuario_id: '', frequencia: 'unica', valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0], dias_semana: [] });
     setOpen(false);
   };
 
@@ -56,7 +69,7 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
           <Plus className="w-3.5 h-3.5" /> Nova Tarefa
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Nova Tarefa</DialogTitle>
         </DialogHeader>
@@ -99,6 +112,18 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
               </Select>
             </div>
           </div>
+
+          {/* Weekday picker — visible only for recurring tasks */}
+          {showWeekdayPicker && (
+            <div className="animate-fade-in">
+              <WeekdayPicker
+                value={form.dias_semana}
+                onChange={days => setForm(f => ({ ...f, dias_semana: days }))}
+                label="Dias da semana *"
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             {isMaster && (
               <div className="space-y-2">
@@ -107,11 +132,17 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Prazo</Label>
+              <Label>{form.frequencia === 'unica' ? 'Data' : 'Prazo final'}</Label>
               <Input type="date" value={form.data_limite} onChange={e => setForm(f => ({ ...f, data_limite: e.target.value }))} required />
             </div>
           </div>
-          <Button type="submit" className="w-full gradient-primary text-primary-foreground">Criar Tarefa</Button>
+          <Button
+            type="submit"
+            className="w-full gradient-primary text-primary-foreground"
+            disabled={showWeekdayPicker && form.dias_semana.length === 0}
+          >
+            Criar Tarefa
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
