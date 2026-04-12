@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Bell, Volume2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAlarms } from '@/context/AlarmContext';
 import WeekdayPicker from '@/components/WeekdayPicker';
+import { Switch } from '@/components/ui/switch';
 import type { TaskFrequency } from '@/types';
 
 interface CreateTaskDialogProps {
@@ -19,6 +22,7 @@ interface CreateTaskDialogProps {
 const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
   const { users, currentUser, isMaster, addTask } = useApp();
   const { addNotification } = useNotifications();
+  const { soundOptions } = useAlarms();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -26,6 +30,9 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
     titulo: '', descricao: '', usuario_id: '', frequencia: 'unica' as TaskFrequency,
     valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0],
     dias_semana: [] as number[],
+    alarme_ativo: false,
+    alarme_hora: '08:00',
+    alarme_som: 1,
   });
 
   const activeUsers = users.filter(u => u.ativo);
@@ -59,6 +66,9 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
       valor_recompensa: isMaster ? (parseFloat(form.valor_recompensa) || 0) : 0,
       data_limite: form.data_limite,
       dias_semana: showWeekdayPicker ? form.dias_semana : undefined,
+      alarme_ativo: form.alarme_ativo,
+      alarme_hora: form.alarme_hora,
+      alarme_som: form.alarme_som,
     });
     setSaving(false);
 
@@ -73,7 +83,7 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
 
     const userName = isMaster ? users.find(u => u.id === form.usuario_id)?.nome : currentUser?.nome;
     addNotification(`Nova tarefa "${form.titulo}" atribuída a ${userName}`, 'info');
-    setForm({ titulo: '', descricao: '', usuario_id: '', frequencia: 'unica', valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0], dias_semana: [] });
+    setForm({ titulo: '', descricao: '', usuario_id: '', frequencia: 'unica', valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0], dias_semana: [], alarme_ativo: false, alarme_hora: '08:00', alarme_som: 1 });
     setOpen(false);
   };
 
@@ -138,6 +148,74 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
               />
             </div>
           )}
+
+          {/* Alarm Settings */}
+          <div className="space-y-4 p-4 rounded-2xl border-2 border-primary/10 bg-primary/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className={`w-4 h-4 ${form.alarme_ativo ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Label className="font-semibold">Acionar Alarme</Label>
+              </div>
+              <Switch 
+                checked={form.alarme_ativo} 
+                onCheckedChange={v => setForm(f => ({ ...f, alarme_ativo: v }))} 
+              />
+            </div>
+
+            {form.alarme_ativo && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="space-y-4 pt-2 border-t border-primary/10"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Horário</Label>
+                    <Input 
+                      type="time" 
+                      value={form.alarme_hora} 
+                      onChange={e => setForm(f => ({ ...f, alarme_hora: e.target.value }))}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Toque</Label>
+                    <Select 
+                      value={form.alarme_som.toString()} 
+                      onValueChange={v => setForm(f => ({ ...f, alarme_som: Number(v) }))}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {soundOptions.map(s => (
+                          <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs h-8 gap-2 border-primary/20 hover:bg-primary/10 transition-colors"
+                  onClick={() => {
+                    const sound = soundOptions.find(s => s.id === form.alarme_som);
+                    if (sound) {
+                      const audio = new Audio(sound.url);
+                      audio.play().catch(() => {});
+                      setTimeout(() => audio.pause(), 3000);
+                      toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                    }
+                  }}
+                >
+                  <Volume2 className="w-3 h-3" /> Testar Som Selecionado
+                </Button>
+              </motion.div>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             {isMaster && (

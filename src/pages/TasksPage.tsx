@@ -13,7 +13,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import CreateTaskDialog from '@/components/CreateTaskDialog';
 import WeekdayPicker from '@/components/WeekdayPicker';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { useAlarms } from '@/context/AlarmContext';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, Bell, Volume2 } from 'lucide-react';
 import type { Task, TaskFrequency } from '@/types';
 
 const statusConfig = {
@@ -62,6 +64,7 @@ const taskVisibleOnDate = (task: Task, dateStr: string, date: Date): boolean => 
 
 const TasksPage = () => {
   const { currentUser, tasks, users, isMaster, updateTaskStatus, editTask, deleteTask } = useApp();
+  const { soundOptions } = useAlarms();
   const { toast } = useToast();
   const [weekOffset,   setWeekOffset]   = useState(0);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -71,6 +74,7 @@ const TasksPage = () => {
   const [editForm, setEditForm] = useState({
     titulo: '', descricao: '', usuario_id: '', frequencia: 'diaria' as TaskFrequency,
     valor_recompensa: '', data_limite: '', dias_semana: [] as number[],
+    alarme_ativo: false, alarme_hora: '08:00', alarme_som: 1,
   });
 
   const weekDates      = getWeekDates(weekOffset);
@@ -120,6 +124,9 @@ const TasksPage = () => {
       titulo: task.titulo, descricao: task.descricao, usuario_id: task.usuario_id,
       frequencia: task.frequencia, valor_recompensa: task.valor_recompensa.toString(),
       data_limite: task.data_limite, dias_semana: task.dias_semana ?? [],
+      alarme_ativo: task.alarme_ativo || false,
+      alarme_hora: task.alarme_hora || '08:00',
+      alarme_som: task.alarme_som || 1,
     });
     setEditingTask(task);
   };
@@ -135,6 +142,9 @@ const TasksPage = () => {
       valor_recompensa: parseFloat(editForm.valor_recompensa) || 0,
       data_limite: editForm.data_limite,
       dias_semana: showWeekdayPicker ? editForm.dias_semana : [],
+      alarme_ativo: editForm.alarme_ativo,
+      alarme_hora: editForm.alarme_hora,
+      alarme_som: editForm.alarme_som,
     });
     setSaving(false);
 
@@ -462,6 +472,75 @@ const TasksPage = () => {
                   <Input type="date" value={editForm.data_limite} onChange={e => setEditForm(f => ({ ...f, data_limite: e.target.value }))} required />
                 </div>
               </div>
+
+              {/* Alarm Settings */}
+              <div className="space-y-4 p-4 rounded-2xl border-2 border-primary/10 bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bell className={`w-4 h-4 ${editForm.alarme_ativo ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <Label className="font-semibold">Acionar Alarme</Label>
+                  </div>
+                  <Switch 
+                    checked={editForm.alarme_ativo} 
+                    onCheckedChange={v => setEditForm(f => ({ ...f, alarme_ativo: v }))} 
+                  />
+                </div>
+
+                {editForm.alarme_ativo && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-4 pt-2 border-t border-primary/10"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Horário</Label>
+                        <Input 
+                          type="time" 
+                          value={editForm.alarme_hora} 
+                          onChange={e => setEditForm(f => ({ ...f, alarme_hora: e.target.value }))}
+                          className="bg-background"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Toque</Label>
+                        <Select 
+                          value={editForm.alarme_som.toString()} 
+                          onValueChange={v => setEditForm(f => ({ ...f, alarme_som: Number(v) }))}
+                        >
+                          <SelectTrigger className="bg-background">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {soundOptions.map(s => (
+                              <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full text-xs h-8 gap-2 border-primary/20 hover:bg-primary/10 transition-colors"
+                      onClick={() => {
+                        const sound = soundOptions.find(s => s.id === editForm.alarme_som);
+                        if (sound) {
+                          const audio = new Audio(sound.url);
+                          audio.play().catch(() => {});
+                          setTimeout(() => audio.pause(), 3000);
+                          toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
+                        }
+                      }}
+                    >
+                      <Volume2 className="w-3 h-3" /> Testar Som Selecionado
+                    </Button>
+                  </motion.div>
+                )}
+              </div>
+
               <Button
                 type="submit"
                 className="w-full gradient-primary text-primary-foreground"

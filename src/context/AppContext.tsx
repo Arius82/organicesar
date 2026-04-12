@@ -75,6 +75,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       descricao = descricao.replace(/\[meta:ex:[\d\-,]+\]/, '').trim();
     }
 
+    // Parse alarm
+    let alarme_ativo = false;
+    let alarme_hora = '';
+    let alarme_som = 1;
+
+    const alMatch = descricao.match(/\[meta:al:(\d),([\d:]+),(\d)\]/);
+    if (alMatch) {
+      alarme_ativo = alMatch[1] === '1';
+      alarme_hora = alMatch[2];
+      alarme_som = Number(alMatch[3]);
+      descricao = descricao.replace(/\[meta:al:[\d,:]+\]/, '').trim();
+    }
+
     return {
       id: t.id, 
       titulo: t.titulo, 
@@ -88,16 +101,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       data_conclusao: t.data_conclusao || undefined,
       dias_semana: dias_semana,
       excecoes: excecoes,
+      alarme_ativo,
+      alarme_hora,
+      alarme_som,
     };
   };
 
-  const stringifyTask = (desc: string, days?: number[], ex?: string[]) => {
+  const stringifyTask = (desc: string, days?: number[], ex?: string[], al?: { ativo?: boolean; hora?: string; som?: number }) => {
     let finalDesc = desc;
     if (days && days.length > 0) {
       finalDesc += `\n\n[meta:days:${days.join(',')}]`;
     }
     if (ex && ex.length > 0) {
       finalDesc += `\n\n[meta:ex:${ex.join(',')}]`;
+    }
+    if (al?.ativo) {
+      finalDesc += `\n\n[meta:al:1,${al.hora || '08:00'},${al.som || 1}]`;
     }
     return finalDesc.trim();
   };
@@ -275,7 +294,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>): Promise<boolean> => {
     const { error } = await supabase.from('tasks').insert({
       titulo: task.titulo, 
-      descricao: stringifyTask(task.descricao, task.dias_semana, task.excecoes), 
+      descricao: stringifyTask(task.descricao, task.dias_semana, task.excecoes, { 
+        ativo: task.alarme_ativo, 
+        hora: task.alarme_hora, 
+        som: task.alarme_som 
+      }), 
       usuario_id: task.usuario_id,
       frequencia: task.frequencia, 
       valor_recompensa: task.valor_recompensa,
@@ -300,9 +323,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const finalDesc = data.descricao !== undefined ? data.descricao : (currentTask?.descricao || '');
       const finalDays = data.dias_semana !== undefined ? data.dias_semana : currentTask?.dias_semana;
       const finalEx = data.excecoes !== undefined ? data.excecoes : currentTask?.excecoes;
-      payload.descricao = stringifyTask(finalDesc, finalDays, finalEx);
+      const finalAl = {
+        ativo: data.alarme_ativo !== undefined ? data.alarme_ativo : currentTask?.alarme_ativo,
+        hora: data.alarme_hora !== undefined ? data.alarme_hora : currentTask?.alarme_hora,
+        som: data.alarme_som !== undefined ? data.alarme_som : currentTask?.alarme_som,
+      };
+      payload.descricao = stringifyTask(finalDesc, finalDays, finalEx, finalAl);
       delete payload.dias_semana;
       delete payload.excecoes;
+      delete payload.alarme_ativo;
+      delete payload.alarme_hora;
+      delete payload.alarme_som;
     }
 
     const { error } = await supabase.from('tasks').update(payload).eq('id', taskId);

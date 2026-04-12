@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
 import {
@@ -17,7 +18,8 @@ import { useNotifications } from '@/context/NotificationContext';
 import InviteMemberDialog from '@/components/InviteMemberDialog';
 import WeekdayPicker from '@/components/WeekdayPicker';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { useAlarms } from '@/context/AlarmContext';
+import { Loader2, Bell, Volume2 } from 'lucide-react';
 import type { User, UserType, Task, TaskFrequency, TaskStatus } from '@/types';
 
 const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -93,11 +95,15 @@ interface TaskEditFormData {
   data_limite: string;
   status: TaskStatus;
   dias_semana: number[];
+  alarme_ativo: boolean;
+  alarme_hora: string;
+  alarme_som: number;
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 const UsersPage = () => {
   const { users, tasks, currentUser, isMaster, editUser, deleteUser, updateTaskStatus, editTask, deleteTask, addTask } = useApp();
+  const { soundOptions } = useAlarms();
   const { addNotification } = useNotifications();
   const { toast } = useToast();
 
@@ -115,6 +121,7 @@ const UsersPage = () => {
   const [savingTask, setSavingTask] = useState(false);
   const [taskForm, setTaskForm] = useState<TaskEditFormData>({
     titulo: '', descricao: '', frequencia: 'unica', valor_recompensa: '', data_limite: '', status: 'pendente', dias_semana: [],
+    alarme_ativo: false, alarme_hora: '08:00', alarme_som: 1,
   });
   // New task inside user panel
   const [showNewTask, setShowNewTask] = useState(false);
@@ -122,6 +129,9 @@ const UsersPage = () => {
     titulo: '', descricao: '', frequencia: 'unica' as TaskFrequency,
     valor_recompensa: '', data_limite: new Date().toISOString().split('T')[0],
     dias_semana: [] as number[],
+    alarme_ativo: false,
+    alarme_hora: '08:00',
+    alarme_som: 1,
   });
 
   const newTaskShowWeekday  = newTaskForm.frequencia === 'diaria' || newTaskForm.frequencia === 'semanal';
@@ -163,10 +173,12 @@ const UsersPage = () => {
   // ─── Task edit ──────────────────────────────────────────────────────────────
   const openEditTask = (task: Task) => {
     setTaskForm({
-      titulo: task.titulo, descricao: task.descricao,
-      frequencia: task.frequencia, valor_recompensa: task.valor_recompensa.toString(),
-      data_limite: task.data_limite, status: task.status,
-      dias_semana: task.dias_semana ?? [],
+      titulo: task.titulo, descricao: task.descricao, frequencia: task.frequencia,
+      valor_recompensa: task.valor_recompensa.toString(), data_limite: task.data_limite,
+      status: task.status, dias_semana: task.dias_semana || [],
+      alarme_ativo: task.alarme_ativo || false,
+      alarme_hora: task.alarme_hora || '08:00',
+      alarme_som: task.alarme_som || 1,
     });
     setEditingTask(task);
   };
@@ -181,6 +193,9 @@ const UsersPage = () => {
       frequencia: taskForm.frequencia, valor_recompensa: parseFloat(taskForm.valor_recompensa) || 0,
       data_limite: taskForm.data_limite,
       dias_semana: editTaskShowWeekday ? taskForm.dias_semana : [],
+      alarme_ativo: taskForm.alarme_ativo,
+      alarme_hora: taskForm.alarme_hora,
+      alarme_som: taskForm.alarme_som,
     });
     setSavingTask(false);
 
@@ -229,6 +244,9 @@ const UsersPage = () => {
       valor_recompensa: parseFloat(newTaskForm.valor_recompensa) || 0,
       data_limite: newTaskForm.data_limite,
       dias_semana: newTaskShowWeekday ? newTaskForm.dias_semana : undefined,
+      alarme_ativo: newTaskForm.alarme_ativo,
+      alarme_hora: newTaskForm.alarme_hora,
+      alarme_som: newTaskForm.alarme_som,
     });
     setSavingTask(false);
 
@@ -390,14 +408,75 @@ const UsersPage = () => {
                   </div>
                   {/* Weekday picker */}
                   {newTaskShowWeekday && (
-                    <div className="animate-fade-in">
-                      <WeekdayPicker
-                        value={newTaskForm.dias_semana}
-                        onChange={days => setNewTaskForm(f => ({ ...f, dias_semana: days }))}
-                        label="Dias da semana *"
+                    <div className="space-y-1.5 col-span-2">
+                      <Label className="text-xs">Dias da semana</Label>
+                      <WeekdayPicker 
+                        value={newTaskForm.dias_semana} 
+                        onChange={days => setNewTaskForm(f => ({ ...f, dias_semana: days }))} 
                       />
                     </div>
                   )}
+
+                  {/* Alarm Settings - New Task */}
+                  <div className="space-y-3 p-3 rounded-xl border border-primary/10 bg-primary/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className={`w-3.5 h-3.5 ${newTaskForm.alarme_ativo ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <Label className="text-xs font-semibold">Acionar Alarme</Label>
+                      </div>
+                      <Switch 
+                        checked={newTaskForm.alarme_ativo} 
+                        onCheckedChange={v => setNewTaskForm(f => ({ ...f, alarme_ativo: v }))} 
+                      />
+                    </div>
+
+                    {newTaskForm.alarme_ativo && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-primary/10">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Horário</Label>
+                          <Input 
+                            type="time" 
+                            value={newTaskForm.alarme_hora} 
+                            onChange={e => setNewTaskForm(f => ({ ...f, alarme_hora: e.target.value }))}
+                            className="h-8 text-xs bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Toque</Label>
+                          <Select 
+                            value={newTaskForm.alarme_som.toString()} 
+                            onValueChange={v => setNewTaskForm(f => ({ ...f, alarme_som: Number(v) }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs bg-background">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {soundOptions.map(s => (
+                                <SelectItem key={s.id} value={s.id.toString()} className="text-xs">{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="col-span-2 h-7 text-[10px] gap-1.5 border-primary/20"
+                          onClick={() => {
+                            const sound = soundOptions.find(s => s.id === newTaskForm.alarme_som);
+                            if (sound) {
+                              const audio = new Audio(sound.url);
+                              audio.play().catch(() => {});
+                              setTimeout(() => audio.pause(), 3000);
+                            }
+                          }}
+                        >
+                          <Volume2 className="w-3 h-3" /> Testar Som
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   <Button
                     type="submit"
                     size="sm"

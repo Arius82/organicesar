@@ -7,6 +7,8 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { AlarmProvider } from "@/context/AlarmContext";
+import AlarmOverlay from "@/components/AlarmOverlay";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -43,7 +45,10 @@ const AuthGuard = () => {
   return (
     <AppProvider>
       <NotificationProvider>
-        <AppContent />
+        <AlarmProvider>
+          <AlarmOverlay />
+          <AppContent />
+        </AlarmProvider>
       </NotificationProvider>
     </AppProvider>
   );

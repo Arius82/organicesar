@@ -32,6 +32,10 @@ export interface Task {
   dias_semana?: number[];
   /** Datas (YYYY-MM-DD) onde esta tarefa recorrente NÃO deve aparecer */
   excecoes?: string[];
+  /** Configurações de alarme */
+  alarme_ativo?: boolean;
+  alarme_hora?: string; // HH:mm
+  alarme_som?: number;  // 1-5
 }
 
 export type RewardType = 'credito' | 'debito';
