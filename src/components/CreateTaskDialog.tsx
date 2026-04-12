@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useNotifications } from '@/context/NotificationContext';
+import { useToast } from '@/hooks/use-toast';
 import WeekdayPicker from '@/components/WeekdayPicker';
 import type { TaskFrequency } from '@/types';
 
@@ -18,7 +19,9 @@ interface CreateTaskDialogProps {
 const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
   const { users, currentUser, isMaster, addTask } = useApp();
   const { addNotification } = useNotifications();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     titulo: '', descricao: '', usuario_id: '', frequencia: 'unica' as TaskFrequency,
     valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0],
@@ -42,12 +45,13 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
     }
   }, [form.frequencia, showWeekdayPicker]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.titulo.trim() || (!isMaster && !currentUser) || (isMaster && !form.usuario_id) || !form.data_limite) return;
     if (showWeekdayPicker && form.dias_semana.length === 0) return; // require at least one day
 
-    addTask({
+    setSaving(true);
+    const success = await addTask({
       titulo: form.titulo.trim(),
       descricao: form.descricao.trim(),
       usuario_id: isMaster ? form.usuario_id : currentUser!.id,
@@ -56,6 +60,17 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
       data_limite: form.data_limite,
       dias_semana: showWeekdayPicker ? form.dias_semana : undefined,
     });
+    setSaving(false);
+
+    if (!success) {
+      toast({
+        title: 'Erro ao salvar tarefa',
+        description: 'Não foi possível salvar a tarefa. Tente novamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const userName = isMaster ? users.find(u => u.id === form.usuario_id)?.nome : currentUser?.nome;
     addNotification(`Nova tarefa "${form.titulo}" atribuída a ${userName}`, 'info');
     setForm({ titulo: '', descricao: '', usuario_id: '', frequencia: 'unica', valor_recompensa: '', data_limite: defaultDate || new Date().toISOString().split('T')[0], dias_semana: [] });
@@ -139,9 +154,9 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
           <Button
             type="submit"
             className="w-full gradient-primary text-primary-foreground"
-            disabled={showWeekdayPicker && form.dias_semana.length === 0}
+            disabled={(showWeekdayPicker && form.dias_semana.length === 0) || saving}
           >
-            Criar Tarefa
+            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...</> : 'Criar Tarefa'}
           </Button>
         </form>
       </DialogContent>

@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import CreateTaskDialog from '@/components/CreateTaskDialog';
 import WeekdayPicker from '@/components/WeekdayPicker';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 import type { Task, TaskFrequency } from '@/types';
 
 const statusConfig = {
@@ -46,6 +48,8 @@ const getWeekDates = (offset: number) => {
  * - Tasks without dias_semana appear only on data_limite (original behaviour).
  */
 const taskVisibleOnDate = (task: Task, dateStr: string, date: Date): boolean => {
+  if (task.excecoes?.includes(dateStr)) return false;
+
   if (task.dias_semana && task.dias_semana.length > 0) {
     return (
       dateStr >= task.data_criacao &&
@@ -58,10 +62,12 @@ const taskVisibleOnDate = (task: Task, dateStr: string, date: Date): boolean => 
 
 const TasksPage = () => {
   const { currentUser, tasks, users, isMaster, updateTaskStatus, editTask, deleteTask } = useApp();
+  const { toast } = useToast();
   const [weekOffset,   setWeekOffset]   = useState(0);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [editingTask,  setEditingTask]  = useState<Task | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Task | null>(null);
+  const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     titulo: '', descricao: '', usuario_id: '', frequencia: 'diaria' as TaskFrequency,
     valor_recompensa: '', data_limite: '', dias_semana: [] as number[],
@@ -118,20 +124,44 @@ const TasksPage = () => {
     setEditingTask(task);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTask) return;
-    editTask(editingTask.id, {
+    
+    setSaving(true);
+    const success = await editTask(editingTask.id, {
       titulo: editForm.titulo.trim(), descricao: editForm.descricao.trim(),
       usuario_id: editForm.usuario_id, frequencia: editForm.frequencia,
       valor_recompensa: parseFloat(editForm.valor_recompensa) || 0,
       data_limite: editForm.data_limite,
       dias_semana: showWeekdayPicker ? editForm.dias_semana : [],
     });
+    setSaving(false);
+
+    if (!success) {
+      toast({
+        title: 'Erro ao editar tarefa',
+        description: 'Não foi possível salvar as alterações. Tente novamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setEditingTask(null);
   };
 
-  const handleDelete = (id: string) => { deleteTask(id); setDeleteConfirm(null); };
+  const handleConfirmDelete = async (taskId: string, onlyToday?: boolean) => {
+    setSaving(true);
+    const success = await deleteTask(taskId, onlyToday ? selectedDateStr : undefined);
+    setSaving(false);
+    
+    if (success) {
+      toast({ title: onlyToday ? 'Instância removida' : 'Tarefa excluída', description: 'Alteração salva com sucesso.' });
+      setDeleteConfirm(null);
+    } else {
+      toast({ title: 'Erro ao excluir', description: 'Tente novamente.', variant: 'destructive' });
+    }
+  };
 
   const weekStart = weekDates[0];
   const weekEnd   = weekDates[6];
@@ -372,7 +402,7 @@ const TasksPage = () => {
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(task)}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(task.id)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(task)}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -435,9 +465,9 @@ const TasksPage = () => {
               <Button
                 type="submit"
                 className="w-full gradient-primary text-primary-foreground"
-                disabled={showWeekdayPicker && editForm.dias_semana.length === 0}
+                disabled={(showWeekdayPicker && editForm.dias_semana.length === 0) || saving}
               >
-                Salvar Alterações
+                {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...</> : 'Salvar Alterações'}
               </Button>
             </form>
           </DialogContent>
@@ -446,11 +476,47 @@ const TasksPage = () => {
         {/* Delete Confirm */}
         <Dialog open={!!deleteConfirm} onOpenChange={o => !o && setDeleteConfirm(null)}>
           <DialogContent className="sm:max-w-sm">
-            <DialogHeader><DialogTitle>Excluir Tarefa?</DialogTitle></DialogHeader>
-            <p className="text-sm text-muted-foreground">Esta ação não pode ser desfeita.</p>
-            <div className="flex gap-2 justify-end mt-2">
-              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
-              <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Excluir</Button>
+            <DialogHeader>
+              <DialogTitle>{deleteConfirm?.dias_semana && deleteConfirm.dias_semana.length > 0 ? 'Excluir Tarefa Recorrente?' : 'Excluir Tarefa?'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {deleteConfirm?.dias_semana && deleteConfirm.dias_semana.length > 0 
+                  ? 'Esta é uma tarefa recorrente. Você deseja excluir apenas a ocorrência de hoje ou toda a série?'
+                  : 'Esta ação não pode ser desfeita.'}
+              </p>
+              
+              <div className="flex flex-col gap-2 pt-2">
+                {deleteConfirm?.dias_semana && deleteConfirm.dias_semana.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-foreground" 
+                    onClick={() => deleteConfirm && handleConfirmDelete(deleteConfirm.id, true)}
+                    disabled={saving}
+                  >
+                    <div className="flex items-center gap-2">
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4 text-warning" />}
+                      <span>Excluir apenas hoje ({selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })})</span>
+                    </div>
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="destructive" 
+                  className="w-full justify-start" 
+                  onClick={() => deleteConfirm && handleConfirmDelete(deleteConfirm.id, false)}
+                  disabled={saving}
+                >
+                  <div className="flex items-center gap-2">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    <span>{deleteConfirm?.dias_semana && deleteConfirm.dias_semana.length > 0 ? 'Excluir toda a série (Permanente)' : 'Excluir Permanentemente'}</span>
+                  </div>
+                </Button>
+                
+                <Button variant="ghost" className="w-full" onClick={() => setDeleteConfirm(null)} disabled={saving}>
+                  Cancelar
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -16,9 +16,9 @@ interface AppContextType {
   logout: () => Promise<void>;
   updateTaskStatus: (taskId: string, newStatus: TaskStatus) => void;
   toggleShoppingItem: (itemId: string) => void;
-  addTask: (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => void;
-  editTask: (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => void;
-  deleteTask: (taskId: string) => void;
+  addTask: (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => Promise<boolean>;
+  editTask: (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => Promise<boolean>;
+  deleteTask: (taskId: string, onlyDate?: string) => Promise<boolean>;
   addPantryItem: (item: Omit<PantryItem, 'id'>) => void;
   editPantryItem: (itemId: string, data: Partial<Omit<PantryItem, 'id'>>) => void;
   deletePantryItem: (itemId: string) => void;
@@ -54,6 +54,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [loading, setLoading] = useState(true);
 
   const isMaster = currentUser?.tipo === 'master';
+
+  // Helper to parse/stringify metadata in description
+  const parseTask = (t: any): Task => {
+    let dias_semana: number[] | undefined = undefined;
+    let excecoes: string[] | undefined = undefined;
+    let descricao = t.descricao || '';
+    
+    // Parse days
+    const daysMatch = descricao.match(/\[meta:days:([\d,]+)\]/);
+    if (daysMatch) {
+      dias_semana = daysMatch[1].split(',').map(Number);
+      descricao = descricao.replace(/\[meta:days:[\d,]+\]/, '').trim();
+    }
+
+    // Parse exceptions
+    const exMatch = descricao.match(/\[meta:ex:([\d\-,]+)\]/);
+    if (exMatch) {
+      excecoes = exMatch[1].split(',');
+      descricao = descricao.replace(/\[meta:ex:[\d\-,]+\]/, '').trim();
+    }
+
+    return {
+      id: t.id, 
+      titulo: t.titulo, 
+      descricao, 
+      usuario_id: t.usuario_id,
+      frequencia: t.frequencia as Task['frequencia'], 
+      valor_recompensa: Number(t.valor_recompensa),
+      status: t.status as Task['status'], 
+      data_criacao: t.data_criacao, 
+      data_limite: t.data_limite || '',
+      data_conclusao: t.data_conclusao || undefined,
+      dias_semana: dias_semana,
+      excecoes: excecoes,
+    };
+  };
+
+  const stringifyTask = (desc: string, days?: number[], ex?: string[]) => {
+    let finalDesc = desc;
+    if (days && days.length > 0) {
+      finalDesc += `\n\n[meta:days:${days.join(',')}]`;
+    }
+    if (ex && ex.length > 0) {
+      finalDesc += `\n\n[meta:ex:${ex.join(',')}]`;
+    }
+    return finalDesc.trim();
+  };
 
   const fetchUsers = useCallback(async () => {
     const { data: profiles } = await supabase.from('profiles').select('*');
@@ -101,13 +148,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ]);
       console.log('[AppContext] data loaded, tasks:', tasksRes.data?.length, 'error:', tasksRes.error?.message);
 
-      if (tasksRes.data) setTasks(tasksRes.data.map(t => ({
-        id: t.id, titulo: t.titulo, descricao: t.descricao, usuario_id: t.usuario_id,
-        frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
-        status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
-        data_conclusao: t.data_conclusao || undefined,
-        dias_semana: (t as any).dias_semana || undefined,
-      })));
+      if (tasksRes.data) setTasks(tasksRes.data.map(parseTask));
       if (rewardsRes.data) setRewards(rewardsRes.data.map(r => ({
         id: r.id, usuario_id: r.usuario_id, valor: Number(r.valor),
         tipo: r.tipo as 'credito' | 'debito', descricao: r.descricao, data: r.data,
@@ -136,14 +177,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchTasks = useCallback(async () => {
     const { data } = await supabase.from('tasks').select('*').order('data_criacao', { ascending: false });
-    if (data) setTasks(data.map(t => ({
-      id: t.id, titulo: t.titulo, descricao: t.descricao, usuario_id: t.usuario_id,
-      frequencia: t.frequencia as Task['frequencia'], valor_recompensa: Number(t.valor_recompensa),
-      status: t.status as Task['status'], data_criacao: t.data_criacao, data_limite: t.data_limite || '',
-      data_conclusao: t.data_conclusao || undefined,
-      dias_semana: (t as any).dias_semana || undefined,
-    })));
-  }, []);
+    if (data) setTasks(data.map(parseTask));
+  }, [parseTask]);
 
   const fetchRewards = useCallback(async () => {
     const { data } = await supabase.from('rewards').select('*').order('data', { ascending: false });
@@ -237,35 +272,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).eq('id', itemId);
   }, [shopping, pantry]);
 
-  const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>) => {
+  const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>): Promise<boolean> => {
     const { error } = await supabase.from('tasks').insert({
-      titulo: task.titulo, descricao: task.descricao, usuario_id: task.usuario_id,
-      frequencia: task.frequencia, valor_recompensa: task.valor_recompensa,
-      data_limite: task.data_limite, created_by: authUser?.id,
-      dias_semana: task.dias_semana && task.dias_semana.length > 0 ? task.dias_semana : null,
+      titulo: task.titulo, 
+      descricao: stringifyTask(task.descricao, task.dias_semana, task.excecoes), 
+      usuario_id: task.usuario_id,
+      frequencia: task.frequencia, 
+      valor_recompensa: task.valor_recompensa,
+      data_limite: task.data_limite, 
+      created_by: authUser?.id,
+      // dias_semana is removed because we tunneling it through description
     });
     if (error) {
       console.error('Error adding task:', error);
-      return;
+      return false;
     }
     await fetchTasks();
-  }, [authUser, fetchTasks]);
+    return true;
+  }, [authUser, fetchTasks, stringifyTask]);
 
-  const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>) => {
-    const payload = {
-      ...data,
-      dias_semana: data.dias_semana && data.dias_semana.length > 0 ? data.dias_semana : null,
-    };
+  const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>): Promise<boolean> => {
+    const payload: any = { ...data };
+    
+    // Tunnel dias_semana/excecoes into descricao if provided
+    if (data.dias_semana !== undefined || data.descricao !== undefined || data.excecoes !== undefined) {
+      const currentTask = tasks.find(t => t.id === taskId);
+      const finalDesc = data.descricao !== undefined ? data.descricao : (currentTask?.descricao || '');
+      const finalDays = data.dias_semana !== undefined ? data.dias_semana : currentTask?.dias_semana;
+      const finalEx = data.excecoes !== undefined ? data.excecoes : currentTask?.excecoes;
+      payload.descricao = stringifyTask(finalDesc, finalDays, finalEx);
+      delete payload.dias_semana;
+      delete payload.excecoes;
+    }
+
     const { error } = await supabase.from('tasks').update(payload).eq('id', taskId);
-    if (error) console.error('Error editing task:', error);
-    else await fetchTasks();
-  }, [fetchTasks]);
+    if (error) {
+      console.error('Error editing task:', error);
+      return false;
+    }
+    await fetchTasks();
+    return true;
+  }, [fetchTasks, stringifyTask, tasks]);
 
-  const deleteTask = useCallback(async (taskId: string) => {
+  const deleteTask = useCallback(async (taskId: string, onlyDate?: string): Promise<boolean> => {
+    if (onlyDate) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        const newEx = [...(task.excecoes || []), onlyDate];
+        return await editTask(taskId, { excecoes: newEx });
+      }
+    }
+
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
-    if (error) console.error('Error deleting task:', error);
-    else await fetchTasks();
-  }, [fetchTasks]);
+    if (error) {
+      console.error('Error deleting task:', error);
+      return false;
+    }
+    await fetchTasks();
+    return true;
+  }, [fetchTasks, tasks, editTask]);
 
   const addPantryItem = useCallback(async (item: Omit<PantryItem, 'id'>) => {
     const { error } = await supabase.from('pantry_items').insert(item);
