@@ -8,7 +8,7 @@ import { Plus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useNotifications } from '@/context/NotificationContext';
 
-const categories = ['Grãos', 'Laticínios', 'Proteínas', 'Padaria', 'Frutas', 'Temperos', 'Verduras', 'Bebidas', 'Limpeza', 'Outros'];
+import { PANTRY_CATEGORIES } from '@/constants';
 
 const AddPantryItemDialog = () => {
   const { addPantryItem } = useApp();
@@ -54,7 +54,7 @@ const AddPantryItemDialog = () => {
             <Select value={form.categoria} onValueChange={v => setForm(f => ({ ...f, categoria: v }))}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {PANTRY_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

@@ -18,8 +18,9 @@ import { useNotifications } from '@/context/NotificationContext';
 import InviteMemberDialog from '@/components/InviteMemberDialog';
 import WeekdayPicker from '@/components/WeekdayPicker';
 import ModernTimePicker from '@/components/ui/ModernTimePicker';
-import { useToast } from '@/hooks/use-toast';
 import { useAlarms } from '@/context/AlarmContext';
+import { formatCesares } from '@/utils/format';
+import { LEVEL_EMOJI } from '@/constants';
 import { Loader2, Bell, Volume2 } from 'lucide-react';
 import type { User, UserType, Task, TaskFrequency, TaskStatus } from '@/types';
 
@@ -321,10 +322,10 @@ const UsersPage = () => {
                   {user.tipo === 'master' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
                   {user.tipo === 'master' ? 'Master' : 'Simples'}
                 </span>
-                <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {user.nivel}</span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {user.nivel} {LEVEL_EMOJI[user.nivel]}</span>
                 <span className="text-xs font-medium text-primary">{user.pontos} pts</span>
                 <span className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {user.sequencia_dias}d</span>
-                {user.tipo === 'simples' && <span className="text-xs font-medium text-reward">{user.saldo.toFixed(2)} Césares</span>}
+                {user.tipo === 'simples' && <span className="text-xs font-medium text-reward">{formatCesares(user.saldo)}</span>}
                 {!user.ativo && <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">Inativo</span>}
               </div>
               {/* Task summary strip */}
@@ -553,7 +554,7 @@ const UsersPage = () => {
                             {new Date(task.data_limite + 'T00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                           </span>
                           {task.valor_recompensa > 0 && (
-                            <span className="text-xs font-medium text-reward">{task.valor_recompensa.toFixed(2)} Césares</span>
+                            <span className="text-xs font-medium text-reward">{formatCesares(task.valor_recompensa)}</span>
                           )}
                           {/* Weekday chips */}
                           {task.dias_semana && task.dias_semana.length > 0 && (

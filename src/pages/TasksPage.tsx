@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAlarms } from '@/context/AlarmContext';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Bell, Volume2 } from 'lucide-react';
+import { formatCesares } from '@/utils/format';
+import { TASK_FREQUENCIES } from '@/constants';
 import type { Task, TaskFrequency } from '@/types';
 
 const statusConfig = {
@@ -374,7 +376,9 @@ const TasksPage = () => {
                         )}
                         <span className="text-xs text-muted-foreground">{freqLabels[task.frequencia]}</span>
                         {task.valor_recompensa > 0 && (
-                          <span className="text-xs font-medium text-reward">{task.valor_recompensa.toFixed(2)} Césares</span>
+                          <span className="text-xs font-bold text-reward px-2 py-0.5 rounded-full bg-reward/10">
+                            {formatCesares(task.valor_recompensa)}
+                          </span>
                         )}
                         {/* Weekday chips */}
                         {task.dias_semana && task.dias_semana.length > 0 && (
@@ -446,10 +450,9 @@ const TasksPage = () => {
                   <Select value={editForm.frequencia} onValueChange={v => setEditForm(f => ({ ...f, frequencia: v as TaskFrequency, dias_semana: [] }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="diaria">Diária</SelectItem>
-                      <SelectItem value="semanal">Semanal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="unica">Única</SelectItem>
+                      {TASK_FREQUENCIES.map(freq => (
+                        <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

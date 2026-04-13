@@ -8,7 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import AddPantryItemDialog from '@/components/AddPantryItemDialog';
+import { PANTRY_CATEGORIES, CATEGORY_EMOJI } from '@/constants';
+import { formatDate } from '@/utils/format';
 import type { PantryItem } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 const categories = ['Grãos', 'Laticínios', 'Proteínas', 'Padaria', 'Frutas', 'Temperos', 'Verduras', 'Bebidas', 'Limpeza', 'Outros'];
 const categoryEmoji: Record<string, string> = {
@@ -17,7 +20,8 @@ const categoryEmoji: Record<string, string> = {
 };
 
 const PantryPage = () => {
-  const { pantry, isMaster, editPantryItem, deletePantryItem } = useApp();
+  const { pantry, isMaster, editPantryItem, deletePantryItem, autoSyncShoppingList } = useApp();
+  const [syncing, setSyncing] = useState(false);
   const [editing, setEditing] = useState<PantryItem | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ nome_item: '', quantidade: '', quantidade_minima: '', categoria: '', validade: '' });
@@ -64,7 +68,27 @@ const PantryPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar item..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <AddPantryItemDialog />
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 border-primary/20 hover:bg-primary/5 hidden sm:flex"
+              disabled={syncing}
+              onClick={async () => {
+                setSyncing(true);
+                const result = await autoSyncShoppingList();
+                setSyncing(false);
+                if (result.added > 0) {
+                  toast({ title: 'Sincronização concluída', description: `${result.added} itens adicionados à lista de compras.` });
+                } else {
+                  toast({ title: 'Estoque em dia', description: 'Nenhum item abaixo do mínimo encontrado.' });
+                }
+              }}
+            >
+              <Search className="w-3.5 h-3.5" /> Sincronizar Compras
+            </Button>
+            <AddPantryItemDialog />
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />
@@ -72,7 +96,7 @@ const PantryPage = () => {
             <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todas categorias</SelectItem>
-              {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              {PANTRY_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={stockFilter} onValueChange={setStockFilter}>
@@ -90,7 +114,7 @@ const PantryPage = () => {
       {Object.entries(grouped).map(([cat, items]) => (
         <div key={cat}>
           <h3 className="font-display font-semibold text-foreground mb-2 flex items-center gap-2">
-            <span>{categoryEmoji[cat] || '📦'}</span> {cat}
+            <span>{CATEGORY_EMOJI[cat] || '📦'}</span> {cat}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {items.map(item => {
@@ -109,7 +133,13 @@ const PantryPage = () => {
                     <span className={`font-bold ${low ? 'text-warning' : 'text-primary'}`}>{item.quantidade}</span>
                     <span className="text-muted-foreground">/ mín. {item.quantidade_minima}</span>
                   </div>
-                  {item.validade && <p className="text-xs text-muted-foreground mt-2">Validade: {new Date(item.validade).toLocaleDateString('pt-BR')}</p>}
+                  <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all ${low ? 'bg-warning' : 'gradient-primary'}`} 
+                      style={{ width: `${Math.min(100, (item.quantidade / (item.quantidade_minima || 1)) * 50)}%` }} 
+                    />
+                  </div>
+                  {item.validade && <p className="text-xs text-muted-foreground mt-2 italic">Validade: {formatDate(item.validade)}</p>}
                 </div>
               );
             })}
@@ -130,7 +160,7 @@ const PantryPage = () => {
               <Label>Categoria</Label>
               <Select value={editForm.categoria} onValueChange={v => setEditForm(f => ({ ...f, categoria: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>{PANTRY_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -138,7 +168,7 @@ const PantryPage = () => {
               <div className="space-y-2"><Label>Qtd Mínima</Label><Input type="number" min="0" value={editForm.quantidade_minima} onChange={e => setEditForm(f => ({ ...f, quantidade_minima: e.target.value }))} /></div>
             </div>
             <div className="space-y-2"><Label>Validade</Label><Input type="date" value={editForm.validade} onChange={e => setEditForm(f => ({ ...f, validade: e.target.value }))} /></div>
-            <Button type="submit" className="w-full gradient-primary text-primary-foreground">Salvar</Button>
+            <Button type="submit" className="w-full gradient-primary text-primary-foreground">Salvar Alterações</Button>
           </form>
         </DialogContent>
       </Dialog>

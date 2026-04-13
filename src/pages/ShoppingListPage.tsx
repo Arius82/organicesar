@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import AddShoppingItemDialog from '@/components/AddShoppingItemDialog';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { ShoppingItem } from '@/types';
 
 const ShoppingListPage = () => {
-  const { shopping, isMaster, toggleShoppingItem, editShoppingItem, deleteShoppingItem } = useApp();
+  const { shopping, isMaster, toggleShoppingItem, editShoppingItem, deleteShoppingItem, clearBoughtItems } = useApp();
   const [editing, setEditing] = useState<ShoppingItem | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [clearConfirm, setClearConfirm] = useState(false);
   const [editForm, setEditForm] = useState({ nome_item: '', quantidade: '' });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -42,20 +44,20 @@ const ShoppingListPage = () => {
   };
 
   const renderItem = (item: ShoppingItem, bought: boolean) => (
-    <div key={item.id} className={`glass-card rounded-xl p-4 flex items-center gap-3 animate-fade-in ${bought ? 'opacity-60' : ''}`}>
+    <div key={item.id} className={`glass-card rounded-xl p-4 flex items-center gap-3 animate-fade-in transition-all duration-300 ${bought ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}>
       <button
         onClick={() => toggleShoppingItem(item.id)}
-        className={`w-6 h-6 rounded-md flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
-          bought ? 'gradient-primary' : 'border-2 border-primary/30 hover:border-primary'
+        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
+          bought ? 'gradient-primary' : 'border-2 border-primary/30 hover:border-primary bg-background'
         }`}
       >
         {bought && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
       </button>
       <div className="flex-1 min-w-0">
-        <p className={`font-medium text-foreground ${bought ? 'line-through' : ''}`}>{item.nome_item}</p>
-        <p className="text-xs text-muted-foreground">Qtd: {item.quantidade}</p>
+        <p className={`font-medium transition-all ${bought ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{item.nome_item}</p>
+        {!bought && <p className="text-xs text-muted-foreground">Qtd: {item.quantidade}</p>}
       </div>
-      {item.gerado_automaticamente && (
+      {item.gerado_automaticamente && !bought && (
         <span className="text-xs bg-info/10 text-info px-2 py-0.5 rounded-full flex items-center gap-1"><Zap className="w-3 h-3" /> Auto</span>
       )}
       <div className="flex gap-1 flex-shrink-0">
@@ -74,7 +76,19 @@ const ShoppingListPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar item..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <AddShoppingItemDialog />
+          <div className="flex gap-2">
+            {boughtItems.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs h-8 text-muted-foreground border-muted hover:bg-muted/10 hidden sm:flex"
+                onClick={() => setClearConfirm(true)}
+              >
+                Limpar Comprados
+              </Button>
+            )}
+            <AddShoppingItemDialog />
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />
@@ -106,8 +120,11 @@ const ShoppingListPage = () => {
       )}
 
       {boughtItems.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="font-display font-semibold text-muted-foreground flex items-center gap-2"><Check className="w-4 h-4" /> Comprados</h3>
+        <div className="space-y-2 opacity-80 pt-4 border-t border-dashed">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-display font-semibold text-muted-foreground flex items-center gap-2"><Check className="w-4 h-4" /> Comprados</h3>
+            <Button variant="link" size="sm" className="h-6 text-[11px] text-muted-foreground sm:hidden" onClick={() => clearBoughtItems()}>Limpar</Button>
+          </div>
           {boughtItems.map(item => renderItem(item, true))}
         </div>
       )}
@@ -137,6 +154,17 @@ const ShoppingListPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        isOpen={clearConfirm}
+        onOpenChange={setClearConfirm}
+        title="Limpar Comprados?"
+        description="Deseja remover todos os itens que já foram marcados como comprados da sua lista?"
+        onConfirm={() => {
+          clearBoughtItems();
+          setClearConfirm(false);
+        }}
+      />
     </div>
     </PageTransition>
   );

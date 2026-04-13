@@ -2,6 +2,7 @@ import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
 import { Trophy, ArrowUpCircle, ArrowDownCircle, Gift } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { formatCesares } from '@/utils/format';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/context/NotificationContext';
 
@@ -22,7 +23,7 @@ const RewardsPage = () => {
   const handleRedeem = async (item: typeof REWARD_CATALOG[0]) => {
     if (!currentUser) return;
     if (currentUser.saldo < item.price) {
-      addNotification(`Saldo insuficiente para resgatar "${item.title}". Você precisa de ${item.price.toFixed(2)} Césares.`, 'error');
+      addNotification(`Saldo insuficiente para resgatar "${item.title}". Você precisa de ${formatCesares(item.price)}.`, 'error');
       return;
     }
     
@@ -57,7 +58,7 @@ const RewardsPage = () => {
             <Trophy className="w-6 h-6" />
             <span className="text-sm font-medium opacity-80">Seu saldo</span>
           </div>
-          <p className="text-3xl font-display font-bold">{currentUser.saldo.toFixed(2)} Césares</p>
+          <p className="text-3xl font-display font-bold">{formatCesares(currentUser.saldo)}</p>
         </div>
       )}
 
@@ -76,7 +77,7 @@ const RewardsPage = () => {
                  {item.icon}
                </div>
                <h4 className="font-display font-semibold text-sm mb-1 text-foreground leading-tight">{item.title}</h4>
-               <p className="font-bold text-reward mb-4">{item.price.toFixed(2)} Césares</p>
+               <p className="font-bold text-reward mb-4">{formatCesares(item.price)}</p>
                
                {!isMaster && (
                  <button 
@@ -114,7 +115,7 @@ const RewardsPage = () => {
                   </div>
                 </div>
                 <span className={`font-display font-bold text-sm ${reward.tipo === 'credito' ? 'text-success' : 'text-destructive'}`}>
-                  {reward.tipo === 'credito' ? '+' : '-'} {reward.valor.toFixed(2)} Césares
+                  {reward.tipo === 'credito' ? '+' : '-'} {formatCesares(reward.valor)}
                 </span>
               </div>
             );

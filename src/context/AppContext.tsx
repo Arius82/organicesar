@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { PANTRY_CATEGORIES } from '@/constants';
 import type { User, Task, RewardHistory, PantryItem, ShoppingItem, MealPlan, TaskStatus } from '@/types';
 
 interface AppContextType {
@@ -31,6 +32,8 @@ interface AppContextType {
   addUser: (user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => void;
   editUser: (userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => void;
   deleteUser: (userId: string) => void;
+  autoSyncShoppingList: () => Promise<{ added: number }>;
+  clearBoughtItems: () => Promise<void>;
   refreshData: () => void;
 }
 
@@ -257,38 +260,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [signOut]);
 
   const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatus) => {
+    // Optimistic UI update
+    const previousTasks = [...tasks];
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+
     const { error } = await supabase.rpc('update_task_status', { _task_id: taskId, _new_status: newStatus });
-    if (error) { console.error('Error updating task status:', error); return; }
+    if (error) { 
+      console.error('Error updating task status:', error); 
+      setTasks(previousTasks); // Rollback
+      return; 
+    }
     fetchAll();
-  }, [fetchAll]);
+  }, [fetchAll, tasks]);
 
   const toggleShoppingItem = useCallback(async (itemId: string) => {
     const item = shopping.find(i => i.id === itemId);
     if (!item) return;
 
-    if (item.status === 'pendente') {
-      // Sincronização inteligente com a Despensa
-      const normalizedReqName = item.nome_item.trim().toLowerCase();
-      const existingInPantry = pantry.find(p => p.nome_item.trim().toLowerCase() === normalizedReqName);
+    const previousShopping = [...shopping];
+    const newStatus = item.status === 'pendente' ? 'comprado' : 'pendente';
 
-      if (existingInPantry) {
-        await supabase.from('pantry_items')
-          .update({ quantidade: existingInPantry.quantidade + item.quantidade })
-          .eq('id', existingInPantry.id);
-      } else {
-        await supabase.from('pantry_items')
-          .insert({
-            nome_item: item.nome_item,
-            quantidade: item.quantidade,
-            quantidade_minima: 1,
-            categoria: 'Outros'
-          });
+    // Optimistic Update
+    setShopping(prev => prev.map(s => s.id === itemId ? { ...s, status: newStatus } : s));
+
+    try {
+      if (item.status === 'pendente') {
+        const normalizedReqName = item.nome_item.trim().toLowerCase();
+        const existingInPantry = pantry.find(p => p.nome_item.trim().toLowerCase() === normalizedReqName);
+
+        if (existingInPantry) {
+          await supabase.from('pantry_items')
+            .update({ quantidade: existingInPantry.quantidade + item.quantidade })
+            .eq('id', existingInPantry.id);
+        } else {
+          await supabase.from('pantry_items')
+            .insert({
+              nome_item: item.nome_item,
+              quantidade: item.quantidade,
+              quantidade_minima: 1,
+              categoria: 'Outros'
+            });
+        }
       }
-    }
 
-    await supabase.from('shopping_items').update({
-      status: item.status === 'pendente' ? 'comprado' : 'pendente',
-    }).eq('id', itemId);
+      const { error } = await supabase.from('shopping_items').update({
+        status: newStatus,
+      }).eq('id', itemId);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error toggling shopping item:', err);
+      setShopping(previousShopping); // Rollback
+    }
   }, [shopping, pantry]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>): Promise<boolean> => {
@@ -434,6 +457,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchAll();
   }, [fetchAll]);
 
+  const autoSyncShoppingList = useCallback(async () => {
+    const lowStockItems = pantry.filter(item => item.quantidade <= item.quantidade_minima);
+    let addedCount = 0;
+
+    for (const item of lowStockItems) {
+      const alreadyInList = shopping.find(s => 
+        s.nome_item.toLowerCase() === item.nome_item.toLowerCase() && s.status === 'pendente'
+      );
+
+      if (!alreadyInList) {
+        await supabase.from('shopping_items').insert({
+          nome_item: item.nome_item,
+          quantidade: item.quantidade_minima - item.quantidade + 1, // Sugestão simples
+          status: 'pendente',
+          gerado_automaticamente: true
+        });
+        addedCount++;
+      }
+    }
+    
+    if (addedCount > 0) fetchShopping();
+    return { added: addedCount };
+  }, [pantry, shopping, fetchShopping]);
+
+  const clearBoughtItems = useCallback(async () => {
+    const { error } = await supabase.from('shopping_items').delete().eq('status', 'comprado');
+    if (error) console.error('Error clearing bought items:', error);
+    else fetchShopping();
+  }, [fetchShopping]);
+
   const deleteUser = useCallback(async (userId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -454,6 +507,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addTask, editTask, deleteTask,
       addPantryItem, editPantryItem, deletePantryItem,
       addShoppingItem, editShoppingItem, deleteShoppingItem,
+      autoSyncShoppingList, clearBoughtItems,
       addMeal, editMeal, deleteMeal, addUser, editUser, deleteUser, refreshData: fetchAll,
     }}>
       {children}

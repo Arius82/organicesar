@@ -1,6 +1,7 @@
 import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
 import { BarChart3, CheckSquare, Trophy, ShoppingCart, TrendingUp } from 'lucide-react';
+import { formatCesares } from '@/utils/format';
 
 const ReportsPage = () => {
   const { tasks, users, rewards, shopping } = useApp();
@@ -29,7 +30,7 @@ const ReportsPage = () => {
         </div>
         <div className="glass-card rounded-xl p-4 animate-scale-in">
           <Trophy className="w-5 h-5 text-reward mb-2" />
-          <p className="text-2xl font-display font-bold text-foreground">{totalPaid.toFixed(2)} Césares</p>
+          <p className="text-2xl font-display font-bold text-foreground">{formatCesares(totalPaid)}</p>
           <p className="text-xs text-muted-foreground">Recompensas pagas</p>
         </div>
         <div className="glass-card rounded-xl p-4 animate-scale-in">

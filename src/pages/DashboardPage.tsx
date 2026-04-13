@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import type { Task } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { formatCesares } from '@/utils/format';
+import { LEVEL_EMOJI } from '@/constants';
 
 const toDateStr = (d: Date) => d.toISOString().split('T')[0];
 
@@ -50,6 +53,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const [taskDialog, setTaskDialog] = useState<{ title: string; filterFn: (t: Task) => boolean } | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deleteConfirmTask, setDeleteConfirmTask] = useState<Task | null>(null);
   const [editForm, setEditForm] = useState({ titulo: '', descricao: '', valor_recompensa: 0, data_limite: '' });
 
   if (!currentUser) return null;
@@ -70,7 +74,6 @@ const DashboardPage = () => {
     });
 
   const totalPaid = rewards.filter(r => r.tipo === 'credito').reduce((acc, r) => acc + r.valor, 0);
-  const nivelEmoji: Record<string, string> = { 'Iniciante': '🌱', 'Organizado': '🌿', 'Mestre da Casa': '🌳' };
 
   const todayStatusLabel: Record<string, string> = {
     pendente: 'A fazer',
@@ -95,7 +98,7 @@ const DashboardPage = () => {
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-2 bg-secondary rounded-xl px-4 py-2">
-            <span className="text-2xl">{nivelEmoji[currentUser.nivel]}</span>
+            <span className="text-2xl">{LEVEL_EMOJI[currentUser.nivel] || '🌱'}</span>
             <div>
               <p className="text-xs text-muted-foreground">Nível</p>
               <p className="text-sm font-bold text-foreground">{currentUser.nivel}</p>
@@ -190,7 +193,7 @@ const DashboardPage = () => {
                   <p className="text-xs text-muted-foreground">{todayStatusLabel[task.status] || task.status}</p>
                 </div>
                 {task.valor_recompensa > 0 && (
-                  <span className="text-xs font-semibold text-reward flex-shrink-0">{task.valor_recompensa.toFixed(2)} Césares</span>
+                  <span className="text-xs font-semibold text-reward flex-shrink-0">{formatCesares(task.valor_recompensa)}</span>
                 )}
               </div>
             ))}
@@ -207,9 +210,9 @@ const DashboardPage = () => {
         <StatCard icon={AlertTriangle} label="Atrasadas" value={overdueTasks.length} variant="warning"
           onClick={() => setTaskDialog({ title: 'Tarefas Atrasadas', filterFn: t => t.status === 'pendente' && new Date(t.data_limite) < new Date() })} />
         {isMaster ? (
-          <StatCard icon={Trophy} label="Pago total" value={`${totalPaid.toFixed(2)} Césares`} variant="reward" />
+          <StatCard icon={Trophy} label="Pago total" value={formatCesares(totalPaid)} variant="reward" />
         ) : (
-          <StatCard icon={Trophy} label="Saldo" value={`${currentUser.saldo.toFixed(2)} Césares`} variant="reward" />
+          <StatCard icon={Trophy} label="Saldo" value={formatCesares(currentUser.saldo)} variant="reward" />
         )}
       </div>
 
@@ -273,7 +276,7 @@ const DashboardPage = () => {
                       </div>
                     </div>
                     {task.valor_recompensa > 0 && (
-                      <span className="text-xs font-semibold text-reward flex-shrink-0 mr-1">{task.valor_recompensa.toFixed(2)} Césares</span>
+                      <span className="text-xs font-semibold text-reward flex-shrink-0 mr-1">{formatCesares(task.valor_recompensa)}</span>
                     )}
                     {isMaster && (
                       <div className="flex gap-1 flex-shrink-0">
@@ -285,12 +288,7 @@ const DashboardPage = () => {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={async () => {
-                            if (confirm('Excluir esta tarefa?')) {
-                              await deleteTask(task.id);
-                              toast({ title: 'Tarefa excluída' });
-                            }
-                          }}
+                          onClick={() => setDeleteConfirmTask(task)}
                           className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                           title="Excluir"
                         >
@@ -335,10 +333,10 @@ const DashboardPage = () => {
               const user = users.find(u => u.id === task.usuario_id);
               return (
                  <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                   <div>
-                     <p className="text-sm font-medium text-foreground">{task.titulo}</p>
-                     <p className="text-xs text-muted-foreground">{user?.nome} • {task.valor_recompensa.toFixed(2)} Césares</p>
-                   </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{task.titulo}</p>
+                      <p className="text-xs text-muted-foreground">{user?.nome} • {formatCesares(task.valor_recompensa)}</p>
+                    </div>
                    <div className="flex gap-1.5">
                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10" onClick={() => updateTaskStatus(task.id, 'rejeitada')}>
                        <XCircle className="w-3.5 h-3.5 mr-1" /> Rejeitar
@@ -388,6 +386,22 @@ const DashboardPage = () => {
       </div>
 
       {/* Ranking removed */}
+
+      <ConfirmDialog
+        isOpen={!!deleteConfirmTask}
+        onOpenChange={(o) => !o && setDeleteConfirmTask(null)}
+        title="Excluir Tarefa?"
+        description={`Tem certeza que deseja excluir a tarefa "${deleteConfirmTask?.titulo}"?`}
+        variant="destructive"
+        confirmText="Excluir"
+        onConfirm={async () => {
+          if (deleteConfirmTask) {
+            await deleteTask(deleteConfirmTask.id);
+            toast({ title: 'Tarefa excluída' });
+            setDeleteConfirmTask(null);
+          }
+        }}
+      />
     </div>
     </PageTransition>
   );

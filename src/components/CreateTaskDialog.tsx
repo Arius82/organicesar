@@ -14,6 +14,7 @@ import { useAlarms } from '@/context/AlarmContext';
 import WeekdayPicker from '@/components/WeekdayPicker';
 import { Switch } from '@/components/ui/switch';
 import ModernTimePicker from './ui/ModernTimePicker';
+import { TASK_FREQUENCIES } from '@/constants';
 import type { TaskFrequency } from '@/types';
 
 interface CreateTaskDialogProps {
@@ -130,10 +131,9 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
               <Select value={form.frequencia} onValueChange={v => setForm(f => ({ ...f, frequencia: v as TaskFrequency }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="diaria">Diária</SelectItem>
-                  <SelectItem value="semanal">Semanal</SelectItem>
-                  <SelectItem value="mensal">Mensal</SelectItem>
-                  <SelectItem value="unica">Única</SelectItem>
+                  {TASK_FREQUENCIES.map(freq => (
+                    <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
