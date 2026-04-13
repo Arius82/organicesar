@@ -5,7 +5,7 @@ import { Bell, BellRing, XCircle, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AlarmOverlay: React.FC = () => {
-  const { ringingTask, stopAlarm } = useAlarms();
+  const { ringingTask, stopAlarm, isMuted, isAudioWarmedUp } = useAlarms();
   const [displayTime, setDisplayTime] = useState('');
 
   useEffect(() => {
@@ -43,20 +43,38 @@ const AlarmOverlay: React.FC = () => {
           <motion.div
             animate={{ rotate: [0, -15, 15, -15, 15, 0], scale: [1, 1.1, 1] }}
             transition={{ repeat: Infinity, duration: 0.8, repeatDelay: 1 }}
-            className="w-28 h-28 rounded-full bg-primary/20 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(var(--primary),0.3)] border-2 border-primary/30"
+            className="relative w-28 h-28 rounded-full bg-primary/20 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(var(--primary),0.3)] border-2 border-primary/30"
           >
             <BellRing className="w-14 h-14 text-primary" />
+            {(isMuted || !isAudioWarmedUp) && (
+              <div className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground p-1.5 rounded-full shadow-lg">
+                <VolumeX className="w-5 h-5" />
+              </div>
+            )}
           </motion.div>
 
-          <div className="space-y-3 mb-12">
+          <div className="space-y-3 mb-8">
             <p className="text-7xl font-display font-black text-foreground tracking-tighter drop-shadow-sm">
               {displayTime}
             </p>
-            <div className="flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-              <p className="text-sm font-bold text-primary uppercase tracking-[0.3em]">
-                Alarme Ativo
-              </p>
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                <p className="text-sm font-bold text-primary uppercase tracking-[0.3em]">
+                  Alarme Ativo
+                </p>
+              </div>
+              
+              {isMuted && (
+                <p className="text-xs font-semibold text-destructive uppercase tracking-widest bg-destructive/10 px-3 py-1 rounded-full border border-destructive/20 animate-pulse">
+                  ⚠ Som Silenciado no Painel
+                </p>
+              )}
+              {!isMuted && !isAudioWarmedUp && (
+                <p className="text-xs font-semibold text-warning uppercase tracking-widest bg-warning/10 px-3 py-1 rounded-full border border-warning/20">
+                  ⚠ Clique em "Parar" para Ativar Sons Futuros
+                </p>
+              )}
             </div>
           </div>
 

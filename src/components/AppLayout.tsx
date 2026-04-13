@@ -22,8 +22,12 @@ const navItems = [
   { path: '/recompensas', label: 'Recompensas', icon: Trophy, masterOnly: false },
 ];
 
+import { useAlarms } from '@/context/AlarmContext';
+import { Volume2, VolumeX } from 'lucide-react';
+
 const AppLayout = () => {
   const { currentUser, logout, isMaster } = useApp();
+  const { isMuted, toggleMute } = useAlarms();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -102,6 +106,13 @@ const AppLayout = () => {
             {filteredNav.find(n => n.path === location.pathname)?.label || 'Dashboard'}
           </h2>
           <div className="ml-auto flex items-center gap-2">
+            <button
+               onClick={toggleMute}
+               className={`p-2 rounded-lg transition-colors ${isMuted ? 'text-destructive bg-destructive/10' : 'text-primary bg-primary/10'}`}
+               title={isMuted ? "Sons Silenciados" : "Sons Ativos"}
+            >
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </button>
             <ThemeToggle />
             <NotificationBell />
             {currentUser?.tipo === 'simples' && (

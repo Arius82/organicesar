@@ -7,7 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { NotificationProvider } from "@/context/NotificationContext";
-import { AlarmProvider } from "@/context/AlarmContext";
+import { AlarmProvider, useAlarms } from "@/context/AlarmContext";
 import AlarmOverlay from "@/components/AlarmOverlay";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
@@ -36,24 +36,6 @@ const LoadingScreen = () => (
   </div>
 );
 
-const AuthGuard = () => {
-  const { user, loading: authLoading } = useAuth();
-
-  if (authLoading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/login" replace />;
-
-  return (
-    <AppProvider>
-      <NotificationProvider>
-        <AlarmProvider>
-          <AlarmOverlay />
-          <AppContent />
-        </AlarmProvider>
-      </NotificationProvider>
-    </AppProvider>
-  );
-};
-
 const AppContent = () => {
   const { isMaster, loading } = useApp();
 
@@ -75,6 +57,24 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+  );
+};
+
+const AuthGuard = () => {
+  const { user, loading: authLoading } = useAuth();
+
+  if (authLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return (
+    <AppProvider>
+      <NotificationProvider>
+        <AlarmProvider>
+          <AlarmOverlay />
+          <AppContent />
+        </AlarmProvider>
+      </NotificationProvider>
+    </AppProvider>
   );
 };
 

@@ -473,13 +473,16 @@ const UsersPage = () => {
                                 if (playPromise !== undefined) {
                                   playPromise.catch(e => {
                                     console.error('Preview error:', e);
-                                    toast({ title: 'Aviso de Áudio', description: 'Clique novamente para reproduzir.' });
+                                    toast({ 
+                                      title: 'Aviso de Áudio', 
+                                      description: 'Interação necessária. Clique no botão de som no topo ou interaja com a página.' 
+                                    });
                                   });
                                 }
                                 setTimeout(() => {
                                   audio.pause();
                                   audio.src = "";
-                                }, 4000);
+                                }, 5000);
                                 toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
                               } catch (err) {
                                 console.error('Audio Setup Error:', err);
@@ -731,13 +734,16 @@ const UsersPage = () => {
                           if (playPromise !== undefined) {
                             playPromise.catch(e => {
                                 console.error('Preview error:', e);
-                                toast({ title: 'Aviso de Áudio', description: 'Clique novamente para reproduzir.' });
+                                toast({ 
+                                  title: 'Aviso de Áudio', 
+                                  description: 'Interação necessária. Clique no botão de som no topo ou interaja com a página.' 
+                                });
                             });
                           }
                           setTimeout(() => {
                             audio.pause();
                             audio.src = "";
-                          }, 4000);
+                          }, 5000);
                           toast({ title: 'Prévia do Som', description: `Tocando: ${sound.name}` });
                         } catch (err) {
                           console.error('Audio Setup Error:', err);
