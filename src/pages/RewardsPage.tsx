@@ -22,7 +22,7 @@ const RewardsPage = () => {
   const handleRedeem = async (item: typeof REWARD_CATALOG[0]) => {
     if (!currentUser) return;
     if (currentUser.saldo < item.price) {
-      addNotification(`Saldo insuficiente para resgatar "${item.title}". Você precisa de R$ ${item.price.toFixed(2)}.`, 'error');
+      addNotification(`Saldo insuficiente para resgatar "${item.title}". Você precisa de ${item.price.toFixed(2)} Césares.`, 'error');
       return;
     }
     
@@ -57,7 +57,7 @@ const RewardsPage = () => {
             <Trophy className="w-6 h-6" />
             <span className="text-sm font-medium opacity-80">Seu saldo</span>
           </div>
-          <p className="text-3xl font-display font-bold">R$ {currentUser.saldo.toFixed(2)}</p>
+          <p className="text-3xl font-display font-bold">{currentUser.saldo.toFixed(2)} Césares</p>
         </div>
       )}
 
@@ -76,7 +76,7 @@ const RewardsPage = () => {
                  {item.icon}
                </div>
                <h4 className="font-display font-semibold text-sm mb-1 text-foreground leading-tight">{item.title}</h4>
-               <p className="font-bold text-reward mb-4">R$ {item.price.toFixed(2)}</p>
+               <p className="font-bold text-reward mb-4">{item.price.toFixed(2)} Césares</p>
                
                {!isMaster && (
                  <button 
@@ -114,7 +114,7 @@ const RewardsPage = () => {
                   </div>
                 </div>
                 <span className={`font-display font-bold text-sm ${reward.tipo === 'credito' ? 'text-success' : 'text-destructive'}`}>
-                  {reward.tipo === 'credito' ? '+' : '-'} R$ {reward.valor.toFixed(2)}
+                  {reward.tipo === 'credito' ? '+' : '-'} {reward.valor.toFixed(2)} Césares
                 </span>
               </div>
             );

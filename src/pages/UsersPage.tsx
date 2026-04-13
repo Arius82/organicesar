@@ -75,7 +75,7 @@ const UserForm = ({ form, setForm, onSubmit, submitLabel }: {
         </Select>
       </div>
       <div className="space-y-2">
-        <Label>Saldo inicial (R$)</Label>
+        <Label>Saldo inicial (Césares)</Label>
         <Input type="number" step="0.01" min="0" value={form.saldo} onChange={e => setForm(f => ({ ...f, saldo: e.target.value }))} />
       </div>
     </div>
@@ -324,7 +324,7 @@ const UsersPage = () => {
                 <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {user.nivel}</span>
                 <span className="text-xs font-medium text-primary">{user.pontos} pts</span>
                 <span className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {user.sequencia_dias}d</span>
-                {user.tipo === 'simples' && <span className="text-xs font-medium text-reward">R$ {user.saldo.toFixed(2)}</span>}
+                {user.tipo === 'simples' && <span className="text-xs font-medium text-reward">{user.saldo.toFixed(2)} Césares</span>}
                 {!user.ativo && <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">Inativo</span>}
               </div>
               {/* Task summary strip */}
@@ -343,8 +343,8 @@ const UsersPage = () => {
 
       {/* ── USER TASKS PANEL ── */}
       <Dialog open={!!selectedUser} onOpenChange={o => !o && setSelectedUser(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
+        <DialogContent className="sm:max-w-2xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2 border-b">
             {selectedUser && (
               <div className="flex items-center gap-3">
                 <Avatar className="w-10 h-10">
@@ -362,6 +362,8 @@ const UsersPage = () => {
               </div>
             )}
           </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
 
           {/* Add task button */}
           {isMaster && (
@@ -399,7 +401,7 @@ const UsersPage = () => {
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Recompensa (R$)</Label>
+                      <Label className="text-xs">Recompensa (Césares)</Label>
                       <Input type="number" step="0.50" min="0" value={newTaskForm.valor_recompensa} onChange={e => setNewTaskForm(f => ({ ...f, valor_recompensa: e.target.value }))} placeholder="0.00" />
                     </div>
                     <div className="space-y-1.5">
@@ -510,7 +512,7 @@ const UsersPage = () => {
           )}
 
           {/* Tasks list */}
-          <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+          <div className="space-y-2.5">
             {userTasks.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <ClipboardList className="w-12 h-12 text-muted-foreground/30 mb-3" />
@@ -551,7 +553,7 @@ const UsersPage = () => {
                             {new Date(task.data_limite + 'T00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                           </span>
                           {task.valor_recompensa > 0 && (
-                            <span className="text-xs font-medium text-reward">R$ {task.valor_recompensa.toFixed(2)}</span>
+                            <span className="text-xs font-medium text-reward">{task.valor_recompensa.toFixed(2)} Césares</span>
                           )}
                           {/* Weekday chips */}
                           {task.dias_semana && task.dias_semana.length > 0 && (
@@ -602,9 +604,10 @@ const UsersPage = () => {
                   </div>
                 );
               })}
+            </div>
           </div>
         </DialogContent>
-      </Dialog>
+    </Dialog>
 
       {/* ── EDIT USER DIALOG ── */}
       <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
@@ -628,7 +631,7 @@ const UsersPage = () => {
 
       {/* ── EDIT TASK DIALOG ── */}
       <Dialog open={!!editingTask} onOpenChange={o => !o && setEditingTask(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Editar Tarefa</DialogTitle></DialogHeader>
           <form onSubmit={handleEditTaskSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Título</Label><Input value={taskForm.titulo} onChange={e => setTaskForm(f => ({ ...f, titulo: e.target.value }))} required /></div>
@@ -670,7 +673,7 @@ const UsersPage = () => {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Recompensa (R$)</Label><Input type="number" step="0.50" min="0" value={taskForm.valor_recompensa} onChange={e => setTaskForm(f => ({ ...f, valor_recompensa: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Recompensa (Césares)</Label><Input type="number" step="0.50" min="0" value={taskForm.valor_recompensa} onChange={e => setTaskForm(f => ({ ...f, valor_recompensa: e.target.value }))} /></div>
               <div className="space-y-2">
                 <Label>{taskForm.frequencia === 'unica' ? 'Data' : 'Prazo final'}</Label>
                 <Input type="date" value={taskForm.data_limite} onChange={e => setTaskForm(f => ({ ...f, data_limite: e.target.value }))} required />

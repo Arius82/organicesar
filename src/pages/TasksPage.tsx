@@ -374,7 +374,7 @@ const TasksPage = () => {
                         )}
                         <span className="text-xs text-muted-foreground">{freqLabels[task.frequencia]}</span>
                         {task.valor_recompensa > 0 && (
-                          <span className="text-xs font-medium text-reward">R$ {task.valor_recompensa.toFixed(2)}</span>
+                          <span className="text-xs font-medium text-reward">{task.valor_recompensa.toFixed(2)} Césares</span>
                         )}
                         {/* Weekday chips */}
                         {task.dias_semana && task.dias_semana.length > 0 && (
@@ -467,7 +467,7 @@ const TasksPage = () => {
               )}
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Recompensa (R$)</Label><Input type="number" step="0.50" min="0" value={editForm.valor_recompensa} onChange={e => setEditForm(f => ({ ...f, valor_recompensa: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>Recompensa (Césares)</Label><Input type="number" step="0.50" min="0" value={editForm.valor_recompensa} onChange={e => setEditForm(f => ({ ...f, valor_recompensa: e.target.value }))} /></div>
                 <div className="space-y-2">
                   <Label>{editForm.frequencia === 'unica' ? 'Data' : 'Prazo final'}</Label>
                   <Input type="date" value={editForm.data_limite} onChange={e => setEditForm(f => ({ ...f, data_limite: e.target.value }))} required />

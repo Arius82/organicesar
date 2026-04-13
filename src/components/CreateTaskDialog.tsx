@@ -234,7 +234,7 @@ const CreateTaskDialog = ({ defaultDate }: CreateTaskDialogProps) => {
           <div className="grid grid-cols-2 gap-3">
             {isMaster && (
               <div className="space-y-2">
-                <Label>Recompensa (R$)</Label>
+                <Label>Recompensa (Césares)</Label>
                 <Input type="number" step="0.50" min="0" value={form.valor_recompensa} onChange={e => setForm(f => ({ ...f, valor_recompensa: e.target.value }))} placeholder="5.00" />
               </div>
             )}

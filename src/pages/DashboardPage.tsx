@@ -190,7 +190,7 @@ const DashboardPage = () => {
                   <p className="text-xs text-muted-foreground">{todayStatusLabel[task.status] || task.status}</p>
                 </div>
                 {task.valor_recompensa > 0 && (
-                  <span className="text-xs font-semibold text-reward flex-shrink-0">R$ {task.valor_recompensa.toFixed(2)}</span>
+                  <span className="text-xs font-semibold text-reward flex-shrink-0">{task.valor_recompensa.toFixed(2)} Césares</span>
                 )}
               </div>
             ))}
@@ -207,9 +207,9 @@ const DashboardPage = () => {
         <StatCard icon={AlertTriangle} label="Atrasadas" value={overdueTasks.length} variant="warning"
           onClick={() => setTaskDialog({ title: 'Tarefas Atrasadas', filterFn: t => t.status === 'pendente' && new Date(t.data_limite) < new Date() })} />
         {isMaster ? (
-          <StatCard icon={Trophy} label="Pago total" value={`R$ ${totalPaid.toFixed(2)}`} variant="reward" />
+          <StatCard icon={Trophy} label="Pago total" value={`${totalPaid.toFixed(2)} Césares`} variant="reward" />
         ) : (
-          <StatCard icon={Trophy} label="Saldo" value={`R$ ${currentUser.saldo.toFixed(2)}`} variant="reward" />
+          <StatCard icon={Trophy} label="Saldo" value={`${currentUser.saldo.toFixed(2)} Césares`} variant="reward" />
         )}
       </div>
 
@@ -273,7 +273,7 @@ const DashboardPage = () => {
                       </div>
                     </div>
                     {task.valor_recompensa > 0 && (
-                      <span className="text-xs font-semibold text-reward flex-shrink-0 mr-1">R$ {task.valor_recompensa.toFixed(2)}</span>
+                      <span className="text-xs font-semibold text-reward flex-shrink-0 mr-1">{task.valor_recompensa.toFixed(2)} Césares</span>
                     )}
                     {isMaster && (
                       <div className="flex gap-1 flex-shrink-0">
@@ -337,7 +337,7 @@ const DashboardPage = () => {
                  <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                    <div>
                      <p className="text-sm font-medium text-foreground">{task.titulo}</p>
-                     <p className="text-xs text-muted-foreground">{user?.nome} • R$ {task.valor_recompensa.toFixed(2)}</p>
+                     <p className="text-xs text-muted-foreground">{user?.nome} • {task.valor_recompensa.toFixed(2)} Césares</p>
                    </div>
                    <div className="flex gap-1.5">
                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10" onClick={() => updateTaskStatus(task.id, 'rejeitada')}>
@@ -387,32 +387,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Ranking (master) */}
-      {isMaster && (
-        <div className="glass-card rounded-xl p-4">
-          <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" /> Ranking da família
-          </h3>
-          <div className="space-y-2">
-            {[...users].filter(u => u.ativo).sort((a, b) => b.pontos - a.pontos).map((user, i) => (
-               <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                 <span className="text-lg w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}</span>
-                 <Avatar className="w-8 h-8">
-                   {user.avatar && <AvatarImage src={user.avatar} alt={user.nome} />}
-                   <AvatarFallback className={`text-xs font-bold ${user.tipo === 'master' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                     {user.nome[0]}
-                   </AvatarFallback>
-                 </Avatar>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">{user.nome}</p>
-                  <p className="text-xs text-muted-foreground">{user.nivel}</p>
-                </div>
-                <span className="text-sm font-bold text-primary">{user.pontos} pts</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Ranking removed */}
     </div>
     </PageTransition>
   );
