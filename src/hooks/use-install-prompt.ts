@@ -6,6 +6,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISS_KEY = 'pwa-install-dismissed';
+const DISMISS_COOLDOWN_HOURS = 24; // Show again after 24 hours
 
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -15,17 +16,26 @@ export function useInstallPrompt() {
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || (navigator as any).standalone === true;
-    const wasDismissed = localStorage.getItem(DISMISS_KEY) === 'true';
 
-    if (isStandalone || wasDismissed) return;
+    // Check if cooldown has elapsed
+    const dismissedAt = localStorage.getItem(DISMISS_KEY);
+    if (dismissedAt) {
+      const elapsed = Date.now() - parseInt(dismissedAt, 10);
+      const cooldownMs = DISMISS_COOLDOWN_HOURS * 60 * 60 * 1000;
+      if (elapsed < cooldownMs) return; // still in cooldown
+      // Cooldown expired—clear it and continue
+      localStorage.removeItem(DISMISS_KEY);
+    }
 
-    // Detecção nativa de iOS
+    if (isStandalone) return;
+
+    // Native iOS detection
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
     
     if (isIOSDevice) {
       setIsIOS(true);
-      setCanInstall(true); // iOS não tem trigger nativo, então ativamos manualmente a box.
+      setCanInstall(true);
       return;
     }
 
@@ -50,7 +60,8 @@ export function useInstallPrompt() {
   };
 
   const dismissInstall = () => {
-    localStorage.setItem(DISMISS_KEY, 'true');
+    // Store timestamp instead of permanent boolean—shows again after cooldown
+    localStorage.setItem(DISMISS_KEY, Date.now().toString());
     setCanInstall(false);
     setDeferredPrompt(null);
   };

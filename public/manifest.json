@@ -7,6 +7,8 @@
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "orientation": "portrait",
+  "categories": ["productivity", "lifestyle"],
+  "lang": "pt-BR",
   "icons": [
     {
       "src": "/icon-192.png",

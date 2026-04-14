@@ -9,6 +9,7 @@ import {
 import NotificationBell from '@/components/NotificationBell';
 import ThemeToggle from '@/components/ThemeToggle';
 import InstallBanner from '@/components/InstallBanner';
+import { formatCesares } from '@/utils/format';
 import logo from '@/assets/logo.png';
 
 const navItems = [
@@ -117,7 +118,7 @@ const AppLayout = () => {
             <NotificationBell />
             {currentUser?.tipo === 'simples' && (
               <div className="gradient-reward text-reward-foreground text-xs font-bold px-3 py-1 rounded-full">
-                R$ {currentUser.saldo.toFixed(2)}
+                {formatCesares(currentUser.saldo)}
               </div>
             )}
           </div>
