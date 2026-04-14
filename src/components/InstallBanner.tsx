@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
-import { Download, X, Share, PlusSquare, Smartphone, Sparkles, Bell } from 'lucide-react';
+import { Download, X, Share, PlusSquare, Smartphone, Sparkles, Bell, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAlarms } from '@/context/AlarmContext';
 
-const SHOW_DELAY_MS = 8000; // Show after 8 seconds of usage for a non-intrusive experience
+const SHOW_DELAY_MS = 5000; // Show after 5 seconds of usage
 
 const InstallBanner = () => {
-  const { canInstall, isIOS, promptInstall, dismissInstall } = useInstallPrompt();
+  const { canInstall, isIOS, isAndroid, hasNativePrompt, promptInstall, dismissInstall } = useInstallPrompt();
   const { notificationPermission, requestNotificationPermission } = useAlarms();
   const [visible, setVisible] = useState(false);
   const [showNotifHint, setShowNotifHint] = useState(false);
@@ -22,13 +22,13 @@ const InstallBanner = () => {
   // Show notification permission hint if user hasn't granted it yet
   useEffect(() => {
     if (notificationPermission === 'default') {
-      const timer = setTimeout(() => setShowNotifHint(true), 15000);
+      const timer = setTimeout(() => setShowNotifHint(true), 12000);
       return () => clearTimeout(timer);
     }
   }, [notificationPermission]);
 
   // Notification permission reminder (separate from install banner)
-  if (showNotifHint && notificationPermission === 'default' && !canInstall) {
+  if (showNotifHint && notificationPermission === 'default' && !visible) {
     return (
       <div className="fixed bottom-4 left-4 right-4 z-50 animate-fade-in lg:left-auto lg:right-6 lg:max-w-sm">
         <div className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-4 shadow-2xl shadow-primary/20 ring-1 ring-white/20">
@@ -102,6 +102,7 @@ const InstallBanner = () => {
             </p>
 
             {isIOS ? (
+              /* iOS: Step-by-step instructions */
               <div className="space-y-2">
                 <p className="text-xs text-emerald-100/90 leading-relaxed">
                   Para a melhor experiência no seu iPhone:
@@ -117,10 +118,11 @@ const InstallBanner = () => {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : hasNativePrompt ? (
+              /* Android/Chrome with native prompt available */
               <div className="space-y-3">
                 <p className="text-xs text-emerald-100/90 leading-relaxed">
-                  Acesse direto da tela inicial — mais rápido, com alertas e tela cheia!
+                  Acesse direto da tela inicial — mais rápido, com alarmes e tela cheia!
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -137,6 +139,23 @@ const InstallBanner = () => {
                   >
                     Talvez depois
                   </button>
+                </div>
+              </div>
+            ) : (
+              /* Android/other without native prompt: manual instructions */
+              <div className="space-y-2">
+                <p className="text-xs text-emerald-100/90 leading-relaxed">
+                  Adicione à tela inicial para acesso rápido:
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 text-xs text-white/80">
+                    <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold text-white">1</div>
+                    <span>Toque em <MoreVertical className="inline w-3.5 h-3.5 mx-0.5 -mt-0.5" /> <strong>menu do navegador</strong></span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/80">
+                    <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold text-white">2</div>
+                    <span><strong>Adicionar à tela inicial</strong> ou <strong>Instalar app</strong></span>
+                  </div>
                 </div>
               </div>
             )}
