@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
+import { useAlarms } from '@/context/AlarmContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,14 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { User, Camera, Lock, Save, Trophy, Flame, Star, Pencil } from 'lucide-react';
+import { User, Camera, Lock, Save, Trophy, Flame, Star, Pencil, Bell, BellOff, Volume2, VolumeX, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import AvatarPicker from '@/components/AvatarPicker';
 import PageTransition from '@/components/PageTransition';
 
 const ProfilePage = () => {
   const { currentUser, refreshData } = useApp();
   const { updatePassword } = useAuth();
+  const { isMuted, toggleMute, notificationPermission, requestNotificationPermission } = useAlarms();
   const { toast } = useToast();
 
   const [nome, setNome] = useState(currentUser?.nome || '');
@@ -72,6 +75,15 @@ const ProfilePage = () => {
 
   if (!currentUser) return null;
 
+  const notifStatus = {
+    granted: { icon: CheckCircle2, label: 'Ativas', color: 'text-success', bg: 'bg-success/10' },
+    denied: { icon: BellOff, label: 'Bloqueadas', color: 'text-destructive', bg: 'bg-destructive/10' },
+    default: { icon: Bell, label: 'Não configuradas', color: 'text-warning', bg: 'bg-warning/10' },
+    unsupported: { icon: AlertTriangle, label: 'Não suportadas', color: 'text-muted-foreground', bg: 'bg-muted' },
+  }[notificationPermission] || notifStatus;
+
+  const NotifIcon = notifStatus.icon;
+
   return (
     <PageTransition>
     <div className="max-w-2xl mx-auto space-y-6">
@@ -112,6 +124,95 @@ const ProfilePage = () => {
               <p className="text-lg font-bold text-foreground">{currentUser.sequencia_dias}</p>
               <p className="text-xs text-muted-foreground">Sequência</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications & Alarms */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Bell className="w-5 h-5 text-primary" />
+            Notificações & Alarmes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Notification permission status */}
+          <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${notifStatus.bg}`}>
+                <NotifIcon className={`w-5 h-5 ${notifStatus.color}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Notificações Push</p>
+                <p className={`text-xs font-medium ${notifStatus.color}`}>{notifStatus.label}</p>
+              </div>
+            </div>
+            {notificationPermission === 'default' && (
+              <Button
+                size="sm"
+                onClick={requestNotificationPermission}
+                className="gradient-primary text-primary-foreground font-bold h-9"
+              >
+                <Bell className="w-4 h-4 mr-1.5" />
+                Ativar
+              </Button>
+            )}
+            {notificationPermission === 'denied' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  toast({
+                    title: 'Notificações bloqueadas',
+                    description: 'Acesse as configurações do navegador e permita notificações para este site.',
+                  });
+                }}
+                className="h-9 text-xs"
+              >
+                <Info className="w-3.5 h-3.5 mr-1.5" />
+                Como ativar
+              </Button>
+            )}
+            {notificationPermission === 'granted' && (
+              <div className="flex items-center gap-1.5 bg-success/10 text-success px-3 py-1.5 rounded-full">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="text-xs font-bold">OK</span>
+              </div>
+            )}
+          </div>
+
+          {/* Info box when denied */}
+          {notificationPermission === 'denied' && (
+            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+              <p className="text-xs text-destructive/80 leading-relaxed">
+                <strong>Notificações estão bloqueadas.</strong> Para que os alarmes funcionem com o app minimizado, 
+                vá em <strong>Configurações do navegador → Permissões → Notificações</strong> e permita para este site.
+              </p>
+            </div>
+          )}
+
+          {/* Alarm sound toggle */}
+          <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isMuted ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                {isMuted ? <VolumeX className="w-5 h-5 text-destructive" /> : <Volume2 className="w-5 h-5 text-primary" />}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Sons do Alarme</p>
+                <p className="text-xs text-muted-foreground">{isMuted ? 'Silenciados' : 'Ativos'}</p>
+              </div>
+            </div>
+            <Switch checked={!isMuted} onCheckedChange={toggleMute} />
+          </div>
+
+          {/* Helpful tip */}
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10">
+            <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Para garantir que os alarmes funcionem com a tela bloqueada, 
+              <strong> instale o app</strong> na tela inicial e <strong>ative as notificações</strong>.
+            </p>
           </div>
         </CardContent>
       </Card>

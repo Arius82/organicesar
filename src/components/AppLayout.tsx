@@ -28,7 +28,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 
 const AppLayout = () => {
   const { currentUser, logout, isMaster } = useApp();
-  const { isMuted, toggleMute } = useAlarms();
+  const { isMuted, toggleMute, notificationPermission } = useAlarms();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -108,11 +108,20 @@ const AppLayout = () => {
           </h2>
           <div className="ml-auto flex items-center gap-2">
             <button
-               onClick={toggleMute}
-               className={`p-2 rounded-lg transition-colors ${isMuted ? 'text-destructive bg-destructive/10' : 'text-primary bg-primary/10'}`}
-               title={isMuted ? "Sons Silenciados" : "Sons Ativos"}
+               onClick={() => {
+                 if (notificationPermission !== 'granted') {
+                   navigate('/perfil');
+                 } else {
+                   toggleMute();
+                 }
+               }}
+               className={`relative p-2 rounded-lg transition-colors ${isMuted ? 'text-destructive bg-destructive/10' : 'text-primary bg-primary/10'}`}
+               title={notificationPermission !== 'granted' ? 'Ative as notificações no Perfil' : isMuted ? 'Sons Silenciados' : 'Sons Ativos'}
             >
               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              {notificationPermission !== 'granted' && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-warning rounded-full border-2 border-background animate-pulse" />
+              )}
             </button>
             <ThemeToggle />
             <NotificationBell />
