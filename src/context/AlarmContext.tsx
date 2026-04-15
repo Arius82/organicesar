@@ -29,19 +29,6 @@ const SOUND_OPTIONS = [
   { id: 3, name: 'Sino Suave',      url: '/sounds/soft.mp3' },
 ];
 
-// Register the alarm service worker separately from the PWA service worker
-async function registerAlarmSW(): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator)) return null;
-  try {
-    const reg = await navigator.serviceWorker.register('/sw-alarm.js', { scope: '/' });
-    console.log('[AlarmSW] Registered:', reg.scope);
-    return reg;
-  } catch (err) {
-    console.error('[AlarmSW] Registration failed:', err);
-    return null;
-  }
-}
-
 export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { tasks } = useApp();
   const [ringingTask, setRingingTask] = useState<Task | null>(null);
@@ -56,37 +43,146 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastTriggeredRef = useRef<{ id: string; time: string } | null>(null);
+  const lastTriggeredRef = useRef<string | null>(null); // "taskId:HH:mm"
   const isCurrentlyRinging = useRef(false);
-  const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
+  const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
     localStorage.setItem('alarm_muted', isMuted.toString());
   }, [isMuted]);
 
-  // Update ref when state changes
   useEffect(() => {
     isCurrentlyRinging.current = !!ringingTask;
   }, [ringingTask]);
 
-  // Register the alarm SW on mount
+  // ────────────────────────────────────────────
+  // 1. DEDICATED WEB WORKER for background timing
+  // ────────────────────────────────────────────
   useEffect(() => {
-    registerAlarmSW().then(reg => {
-      swRegRef.current = reg;
-    });
+    try {
+      const worker = new Worker('/alarm-worker.js');
+      workerRef.current = worker;
 
-    // Listen for messages from the SW (e.g., STOP_ALARM on notification click)
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'STOP_ALARM') {
-        stopAlarm();
+      worker.onmessage = (e) => {
+        if (e.data.type === 'ALARM_DUE') {
+          const key = `${e.data.taskId}:${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
+          if (lastTriggeredRef.current === key || isCurrentlyRinging.current) return;
+          lastTriggeredRef.current = key;
+
+          const task = tasks.find(t => t.id === e.data.taskId);
+          if (task) {
+            triggerAlarmInternal(task);
+          } else {
+            // Task might not be loaded yet, use data from worker
+            showBackgroundNotification(e.data.taskTitle, e.data.taskDescription, e.data.taskId);
+          }
+        }
+      };
+
+      worker.postMessage({ type: 'START' });
+
+      return () => {
+        worker.postMessage({ type: 'STOP' });
+        worker.terminate();
+        workerRef.current = null;
+      };
+    } catch (err) {
+      console.error('[Alarm] Web Worker failed:', err);
+    }
+  }, []); // Only create worker once
+
+  // Send updated tasks to the worker whenever they change
+  useEffect(() => {
+    if (!workerRef.current || !tasks) return;
+
+    // Only send alarm-relevant data to the worker (lightweight)
+    const alarmTasks = tasks
+      .filter(t => t.alarme_ativo && t.status === 'pendente')
+      .map(t => ({
+        id: t.id,
+        titulo: t.titulo,
+        descricao: t.descricao,
+        alarme_ativo: t.alarme_ativo,
+        alarme_hora: t.alarme_hora,
+        alarme_som: t.alarme_som,
+        status: t.status,
+        data_limite: t.data_limite,
+        data_criacao: t.data_criacao,
+        dias_semana: t.dias_semana,
+        excecoes: t.excecoes,
+      }));
+
+    workerRef.current.postMessage({ type: 'UPDATE_TASKS', tasks: alarmTasks });
+  }, [tasks]);
+
+  // ────────────────────────────────────────────
+  // 2. VISIBILITY CHANGE — fire pending alarms when returning to app
+  // ────────────────────────────────────────────
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && tasks) {
+        // Check if any alarm was missed while in background
+        const now = new Date();
+        const h = now.getHours().toString().padStart(2, '0');
+        const m = now.getMinutes().toString().padStart(2, '0');
+        const currentHHmm = `${h}:${m}`;
+
+        const dueTask = tasks.find(t =>
+          t.alarme_ativo &&
+          t.alarme_hora === currentHHmm &&
+          t.status === 'pendente' &&
+          isTaskDueToday(t)
+        );
+
+        if (dueTask) {
+          const key = `${dueTask.id}:${currentHHmm}`;
+          if (lastTriggeredRef.current !== key && !isCurrentlyRinging.current) {
+            lastTriggeredRef.current = key;
+            triggerAlarmInternal(dueTask);
+          }
+        }
       }
     };
-    navigator.serviceWorker?.addEventListener('message', handler);
-    return () => {
-      navigator.serviceWorker?.removeEventListener('message', handler);
-    };
-  }, []);
 
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [tasks]);
+
+  // ────────────────────────────────────────────
+  // 3. FOREGROUND interval (backup for when Worker isn't supported)
+  // ────────────────────────────────────────────
+  useEffect(() => {
+    const checkAlarms = () => {
+      if (!tasks || document.visibilityState === 'hidden') return;
+      
+      const now = new Date();
+      const h = now.getHours().toString().padStart(2, '0');
+      const m = now.getMinutes().toString().padStart(2, '0');
+      const currentHHmm = `${h}:${m}`;
+      
+      const dueTask = tasks.find(t => 
+        t.alarme_ativo && 
+        t.alarme_hora === currentHHmm && 
+        isTaskDueToday(t) &&
+        t.status === 'pendente'
+      );
+
+      if (dueTask) {
+        const key = `${dueTask.id}:${currentHHmm}`;
+        if (lastTriggeredRef.current !== key && !isCurrentlyRinging.current) {
+          lastTriggeredRef.current = key;
+          triggerAlarmInternal(dueTask);
+        }
+      }
+    };
+
+    const interval = setInterval(checkAlarms, 10000);
+    return () => clearInterval(interval);
+  }, [tasks]);
+
+  // ────────────────────────────────────────────
+  // NOTIFICATION PERMISSION
+  // ────────────────────────────────────────────
   const requestNotificationPermission = useCallback(async () => {
     if (!('Notification' in window)) {
       setNotificationPermission('unsupported');
@@ -95,56 +191,36 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const result = await Notification.requestPermission();
       setNotificationPermission(result);
-      console.log('[Alarm] Notification permission:', result);
     } catch (err) {
-      console.error('[Alarm] Permission request error:', err);
+      console.error('[Alarm] Permission error:', err);
     }
   }, []);
 
-  // Auto-request notification permission after first user interaction
+  // Auto-request after first user interaction
   useEffect(() => {
     if (notificationPermission !== 'default') return;
 
-    const handleInteraction = () => {
+    const handler = () => {
       requestNotificationPermission();
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('click', handler);
+      document.removeEventListener('touchstart', handler);
     };
 
-    // Small delay so the user has context before the permission popup
     const timer = setTimeout(() => {
-      document.addEventListener('click', handleInteraction);
-      document.addEventListener('touchstart', handleInteraction);
+      document.addEventListener('click', handler);
+      document.addEventListener('touchstart', handler);
     }, 3000);
 
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('click', handler);
+      document.removeEventListener('touchstart', handler);
     };
   }, [notificationPermission, requestNotificationPermission]);
 
-  const toggleMute = useCallback(() => {
-    setIsMuted(prev => !prev);
-  }, []);
-
-  const initializeAudio = useCallback(() => {
-    if (isAudioWarmedUp || !audioRef.current) return;
-    
-    // Play a tiny silent sound to unlock audio context in browsers
-    const prevSrc = audioRef.current.src;
-    audioRef.current.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA== ";
-    audioRef.current.play()
-      .then(() => {
-        console.log('Audio Context Warmed Up Successfully');
-        setIsAudioWarmedUp(true);
-      })
-      .catch(err => console.log('Warm up failed or deferred:', err))
-      .finally(() => {
-        audioRef.current!.src = prevSrc;
-      });
-  }, [isAudioWarmedUp]);
-
+  // ────────────────────────────────────────────
+  // HELPERS
+  // ────────────────────────────────────────────
   const isTaskDueToday = (task: Task): boolean => {
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
@@ -160,6 +236,19 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return task.data_limite === dateStr;
   };
 
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => !prev);
+  }, []);
+
+  const initializeAudio = useCallback(() => {
+    if (isAudioWarmedUp || !audioRef.current) return;
+    audioRef.current.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+    audioRef.current.play()
+      .then(() => setIsAudioWarmedUp(true))
+      .catch(() => {})
+      .finally(() => { if (audioRef.current) audioRef.current.src = ''; });
+  }, [isAudioWarmedUp]);
+
   const stopAlarm = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -168,144 +257,85 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRingingTask(null);
   }, []);
 
-  const triggerAlarm = useCallback((task: Task) => {
+  // Show notification via SW registration (works even in background)
+  const showBackgroundNotification = useCallback(async (title: string, body: string, taskId: string) => {
+    if (Notification.permission !== 'granted') return;
+
+    try {
+      const reg = await navigator.serviceWorker?.ready;
+      if (reg) {
+        await reg.showNotification(`🔔 ALARME: ${title}`, {
+          body: body || 'Hora de realizar sua tarefa!',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: `alarm-${taskId}`,
+          renotify: true,
+          requireInteraction: true,
+          vibrate: [500, 200, 500, 200, 500, 200, 500],
+          data: { taskId },
+        });
+      }
+    } catch (err) {
+      // Fallback: basic Notification API
+      try {
+        new Notification(`🔔 ${title}`, {
+          body: body || 'Hora de realizar sua tarefa!',
+          icon: '/icon-192.png',
+          requireInteraction: true,
+        });
+      } catch (e) {}
+    }
+  }, []);
+
+  // Core alarm trigger function
+  const triggerAlarmInternal = useCallback((task: Task) => {
     if (isCurrentlyRinging.current) return;
 
+    console.log('[Alarm] 🔔 TRIGGERING:', task.titulo);
     setRingingTask(task);
-    
-    // Play audio in the foreground (when app is visible)
+
+    // 1. Play audio (foreground only)
     if (!isMuted && audioRef.current) {
       const sound = SOUND_OPTIONS.find(s => s.id === task.alarme_som) || SOUND_OPTIONS[0];
       try {
-        console.log('Triggering Alarm Sound:', sound.url);
         audioRef.current.src = sound.url;
         audioRef.current.load();
         audioRef.current.loop = true;
         audioRef.current.volume = 1.0;
-        
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(err => {
-            console.error('Audio Playback Error:', err);
-          });
-        }
-      } catch (e) {
-        console.error('Audio Setup Error:', e);
-      }
+        audioRef.current.play().catch(() => {});
+      } catch (e) {}
     }
 
-    // Always send a persistent notification via Service Worker
-    // This ensures the alarm is visible even when minimized
-    if (swRegRef.current && notificationPermission === 'granted') {
-      navigator.serviceWorker?.controller?.postMessage({
-        type: 'SHOW_ALARM_NOW',
-        taskId: task.id,
-        taskTitle: task.titulo,
-        taskDescription: task.descricao || 'Hora de realizar sua tarefa!',
-      });
+    // 2. Show persistent notification (works even in background!)
+    showBackgroundNotification(task.titulo, task.descricao, task.id);
 
-      // Fallback: use the SW registration directly
-      swRegRef.current.showNotification(`🔔 ALARME: ${task.titulo}`, {
-        body: task.descricao || 'Hora de realizar sua tarefa!',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        tag: `alarm-${task.id}`,
-        renotify: true,
-        requireInteraction: true,
-        vibrate: [500, 200, 500, 200, 500, 200, 500],
-        data: { taskId: task.id },
-      });
-    } else if ('Notification' in window && Notification.permission === 'granted') {
-      // Fallback to regular notification
-      try {
-        new Notification(`🔔 ALARME: ${task.titulo}`, {
-          body: task.descricao || 'Hora de realizar sua tarefa!',
-          requireInteraction: true,
-          icon: '/icon-192.png',
-        });
-      } catch (e) {
-        console.error('Notification fallback error:', e);
-      }
+    // 3. Vibrate device
+    if ('vibrate' in navigator) {
+      navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
     }
+  }, [isMuted, showBackgroundNotification]);
 
-    if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 500]);
-  }, [isMuted, notificationPermission]);
+  // Public-facing triggerAlarm (for manual triggers)
+  const triggerAlarm = useCallback((task: Task) => {
+    triggerAlarmInternal(task);
+  }, [triggerAlarmInternal]);
 
-  // Schedule alarms for tasks with active alarms whenever tasks change
-  useEffect(() => {
-    if (!tasks || !swRegRef.current) return;
-
-    const now = new Date();
-    const h = now.getHours().toString().padStart(2, '0');
-    const m = now.getMinutes().toString().padStart(2, '0');
-    const currentHHmm = `${h}:${m}`;
-
-    // Send upcoming alarms to the service worker for background firing
-    tasks.forEach(task => {
-      if (
-        task.alarme_ativo &&
-        task.status === 'pendente' &&
-        isTaskDueToday(task) &&
-        task.alarme_hora > currentHHmm
-      ) {
-        navigator.serviceWorker?.controller?.postMessage({
-          type: 'SCHEDULE_ALARM',
-          taskId: task.id,
-          taskTitle: task.titulo,
-          taskDescription: task.descricao || 'Hora de realizar sua tarefa!',
-          alarmTime: task.alarme_hora,
-          soundId: task.alarme_som,
-        });
-      }
-    });
-  }, [tasks]);
-
-  // Foreground alarm check (interval-based, as before)
-  useEffect(() => {
-    const checkAlarms = () => {
-      if (!tasks) return;
-      
-      const now = new Date();
-      const h = now.getHours().toString().padStart(2, '0');
-      const m = now.getMinutes().toString().padStart(2, '0');
-      const currentHHmm = `${h}:${m}`;
-      
-      const dueTask = tasks.find(t => 
-        t.alarme_ativo && 
-        t.alarme_hora === currentHHmm && 
-        isTaskDueToday(t) &&
-        t.status === 'pendente'
-      );
-
-      if (dueTask) {
-        const alreadyTriggered = lastTriggeredRef.current?.id === dueTask.id && lastTriggeredRef.current?.time === currentHHmm;
-        if (!alreadyTriggered && !isCurrentlyRinging.current) {
-          lastTriggeredRef.current = { id: dueTask.id, time: currentHHmm };
-          triggerAlarm(dueTask);
-        }
-      }
-    };
-
-    const interval = setInterval(checkAlarms, 10000); 
-    return () => clearInterval(interval);
-  }, [tasks, triggerAlarm]);
-
-  // Audio warm up effect
+  // Audio warm up on first interaction
   useEffect(() => {
     if (isAudioWarmedUp) return;
 
-    const handleInteraction = () => {
+    const handler = () => {
       initializeAudio();
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('click', handler);
+      document.removeEventListener('touchstart', handler);
     };
 
-    document.addEventListener('click', handleInteraction);
-    document.addEventListener('touchstart', handleInteraction);
+    document.addEventListener('click', handler);
+    document.addEventListener('touchstart', handler);
 
     return () => {
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('click', handler);
+      document.removeEventListener('touchstart', handler);
     };
   }, [initializeAudio, isAudioWarmedUp]);
 
