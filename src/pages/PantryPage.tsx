@@ -119,27 +119,36 @@ const PantryPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {items.map(item => {
               const low = item.quantidade <= item.quantidade_minima;
+              const isExpired = item.validade && new Date(item.validade + 'T23:59:59') < new Date();
+              
               return (
-                <div key={item.id} className={`glass-card rounded-xl p-4 animate-fade-in ${low ? 'border-warning/40' : ''}`}>
+                <div key={item.id} className={`glass-card rounded-xl p-4 animate-fade-in ${low ? 'border-warning/40' : ''} ${isExpired ? 'border-destructive/40 ring-1 ring-destructive/10' : ''}`}>
                   <div className="flex items-center justify-between mb-1">
-                    <h4 className="font-medium text-foreground">{item.nome_item}</h4>
+                    <div className="flex flex-col">
+                      <h4 className="font-medium text-foreground">{item.nome_item}</h4>
+                      {isExpired && (
+                        <span className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Vencido
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1">
-                      {low && <AlertTriangle className="w-4 h-4 text-warning" />}
+                      {low && !isExpired && <AlertTriangle className="w-4 h-4 text-warning" />}
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5" /></Button>
                       {isMaster && <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <span className={`font-bold ${low ? 'text-warning' : 'text-primary'}`}>{item.quantidade}</span>
+                    <span className={`font-bold ${isExpired ? 'text-destructive' : low ? 'text-warning' : 'text-primary'}`}>{item.quantidade}</span>
                     <span className="text-muted-foreground">/ mín. {item.quantidade_minima}</span>
                   </div>
                   <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
                     <div 
-                      className={`h-full transition-all ${low ? 'bg-warning' : 'gradient-primary'}`} 
+                      className={`h-full transition-all ${isExpired ? 'bg-destructive' : low ? 'bg-warning' : 'gradient-primary'}`} 
                       style={{ width: `${Math.min(100, (item.quantidade / (item.quantidade_minima || 1)) * 50)}%` }} 
                     />
                   </div>
-                  {item.validade && <p className="text-xs text-muted-foreground mt-2 italic">Validade: {formatDate(item.validade)}</p>}
+                  {item.validade && <p className={`text-xs mt-2 italic ${isExpired ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>Validade: {formatDate(item.validade)}</p>}
                 </div>
               );
             })}

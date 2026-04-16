@@ -73,8 +73,12 @@ const AppLayout = () => {
 
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
-              {currentUser?.nome[0]}
+            <div className="w-9 h-9 rounded-full overflow-hidden gradient-primary flex items-center justify-center text-primary-foreground text-sm font-bold border-2 border-sidebar-border/50">
+              {currentUser?.avatar ? (
+                <img src={currentUser.avatar} alt={currentUser.nome} className="w-full h-full object-cover" />
+              ) : (
+                currentUser?.nome[0]
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{currentUser?.nome}</p>

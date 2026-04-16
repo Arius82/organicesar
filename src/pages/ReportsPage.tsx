@@ -6,7 +6,8 @@ import { formatCesares } from '@/utils/format';
 const ReportsPage = () => {
   const { tasks, users, rewards, shopping } = useApp();
 
-  const completedByUser = users.map(user => ({
+  const activeUsers = users.filter(u => u.ativo);
+  const completedByUser = activeUsers.map(user => ({
     user,
     completed: tasks.filter(t => t.usuario_id === user.id && t.status === 'concluida').length,
     pending: tasks.filter(t => t.usuario_id === user.id && t.status === 'pendente').length,

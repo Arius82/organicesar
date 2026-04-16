@@ -270,8 +270,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTasks(previousTasks); // Rollback
       return; 
     }
-    fetchAll();
-  }, [fetchAll, tasks]);
+    // fetchAll() removed - realtime handles this
+  }, [tasks]);
 
   const toggleShoppingItem = useCallback(async (itemId: string) => {
     const item = shopping.find(i => i.id === itemId);
@@ -333,9 +333,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('Error adding task:', error);
       return false;
     }
-    await fetchTasks();
+    // fetchTasks() removed - realtime handles this
     return true;
-  }, [authUser, fetchTasks, stringifyTask]);
+  }, [authUser, stringifyTask]);
 
   const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>): Promise<boolean> => {
     const payload: any = { ...data };
@@ -364,9 +364,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('Error editing task:', error);
       return false;
     }
-    await fetchTasks();
+    // fetchTasks() removed - realtime handles this
     return true;
-  }, [fetchTasks, stringifyTask, tasks]);
+  }, [stringifyTask, tasks]);
 
   const deleteTask = useCallback(async (taskId: string, onlyDate?: string): Promise<boolean> => {
     if (onlyDate) {
@@ -382,63 +382,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('Error deleting task:', error);
       return false;
     }
-    await fetchTasks();
+    // fetchTasks() removed - realtime handles this
     return true;
-  }, [fetchTasks, tasks, editTask]);
+  }, [tasks, editTask]);
 
   const addPantryItem = useCallback(async (item: Omit<PantryItem, 'id'>) => {
     const { error } = await supabase.from('pantry_items').insert(item);
     if (error) console.error('Error adding pantry item:', error);
-    else await fetchPantry();
-  }, [fetchPantry]);
+  }, []);
 
   const editPantryItem = useCallback(async (itemId: string, data: Partial<Omit<PantryItem, 'id'>>) => {
     const { error } = await supabase.from('pantry_items').update(data).eq('id', itemId);
     if (error) console.error('Error editing pantry item:', error);
-    else await fetchPantry();
-  }, [fetchPantry]);
+  }, []);
 
   const deletePantryItem = useCallback(async (itemId: string) => {
     const { error } = await supabase.from('pantry_items').delete().eq('id', itemId);
     if (error) console.error('Error deleting pantry item:', error);
-    else await fetchPantry();
-  }, [fetchPantry]);
+  }, []);
 
   const addShoppingItem = useCallback(async (item: { nome_item: string; quantidade: number }) => {
     const { error } = await supabase.from('shopping_items').insert(item);
     if (error) console.error('Error adding shopping item:', error);
-    else await fetchShopping();
-  }, [fetchShopping]);
+  }, []);
 
   const editShoppingItem = useCallback(async (itemId: string, data: Partial<Omit<ShoppingItem, 'id'>>) => {
     const { error } = await supabase.from('shopping_items').update(data).eq('id', itemId);
     if (error) console.error('Error editing shopping item:', error);
-    else await fetchShopping();
-  }, [fetchShopping]);
+  }, []);
 
   const deleteShoppingItem = useCallback(async (itemId: string) => {
     const { error } = await supabase.from('shopping_items').delete().eq('id', itemId);
     if (error) console.error('Error deleting shopping item:', error);
-    else await fetchShopping();
-  }, [fetchShopping]);
+  }, []);
 
   const addMeal = useCallback(async (meal: Omit<MealPlan, 'id'>) => {
     const { error } = await supabase.from('meal_plans').insert(meal);
     if (error) console.error('Error adding meal:', error);
-    else await fetchMeals();
-  }, [fetchMeals]);
+  }, []);
 
   const editMeal = useCallback(async (mealId: string, data: Partial<Omit<MealPlan, 'id'>>) => {
     const { error } = await supabase.from('meal_plans').update(data).eq('id', mealId);
     if (error) console.error('Error editing meal:', error);
-    else await fetchMeals();
-  }, [fetchMeals]);
+  }, []);
 
   const deleteMeal = useCallback(async (mealId: string) => {
     const { error } = await supabase.from('meal_plans').delete().eq('id', mealId);
     if (error) console.error('Error deleting meal:', error);
-    else await fetchMeals();
-  }, [fetchMeals]);
+  }, []);
 
   const addUser = useCallback(async (_user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
     // Users are now created through signup - this is a placeholder
