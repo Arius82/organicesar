@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAlarms } from '@/context/AlarmContext';
@@ -75,18 +76,49 @@ const ProfilePage = () => {
 
   if (!currentUser) return null;
 
-  const notifStatus = {
-    granted: { icon: CheckCircle2, label: 'Ativas', color: 'text-success', bg: 'bg-success/10' },
-    denied: { icon: BellOff, label: 'Bloqueadas', color: 'text-destructive', bg: 'bg-destructive/10' },
-    default: { icon: Bell, label: 'Não configuradas', color: 'text-warning', bg: 'bg-warning/10' },
-    unsupported: { icon: AlertTriangle, label: 'Não suportadas', color: 'text-muted-foreground', bg: 'bg-muted' },
-  }[notificationPermission] || notifStatus;
-
-  const NotifIcon = notifStatus.icon;
+  if (!currentUser) return null;
 
   return (
     <PageTransition>
     <div className="max-w-2xl mx-auto space-y-6">
+      
+      {/* Premium Notification Banner - RACE Framework (Convert) */}
+      {notificationPermission !== 'granted' && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-5 relative overflow-hidden ring-4 ring-primary/5 mb-6 shadow-sm"
+        >
+          <div className="absolute -top-4 -right-2 p-4 opacity-5 pointer-events-none">
+             <Bell className="w-32 h-32 text-primary" />
+          </div>
+          <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-center">
+            <div className={`p-3 rounded-full animate-pulse shadow-lg ${notificationPermission === 'denied' ? 'bg-destructive/20 shadow-destructive/20' : 'bg-primary/20 shadow-primary/20'}`}>
+              <Bell className={`w-7 h-7 ${notificationPermission === 'denied' ? 'text-destructive' : 'text-primary'}`} />
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <h3 className="font-display font-bold text-lg text-primary leading-none mb-1">
+                {notificationPermission === 'denied' ? 'Notificações Bloqueadas' : 'Ative seus Alarmes'}
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {notificationPermission === 'denied' 
+                  ? 'Você bloqueou as notificações. Para receber os alarmes, é necessário liberá-las manualmente no navegador.'
+                  : 'Para garantir que as tarefas sejam cumpridas no horário, ative as notificações push agora.'}
+              </p>
+            </div>
+            <Button 
+              onClick={notificationPermission === 'denied' 
+                ? () => toast({ title: 'Ação necessária', description: 'Libere as notificações nas configurações do navegador.' })
+                : requestNotificationPermission
+              }
+              className="font-bold shadow-md hover:scale-105 transition-all px-8 h-11 gradient-primary text-primary-foreground min-w-[170px]"
+            >
+              {notificationPermission === 'denied' ? 'Como liberar?' : 'Ativar Agora'}
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats Card */}
       <Card className="glass-card overflow-hidden">
         <div className="gradient-primary p-6 flex items-center gap-5">
@@ -108,7 +140,7 @@ const ProfilePage = () => {
           </div>
         </div>
         <CardContent className="p-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-3 gap-4 text-center" >
             <div className="space-y-1">
               <Trophy className="w-5 h-5 mx-auto text-accent" />
               <p className="text-lg font-bold text-foreground">{currentUser.pontos}</p>
@@ -128,94 +160,6 @@ const ProfilePage = () => {
         </CardContent>
       </Card>
 
-      {/* Notifications & Alarms */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="w-5 h-5 text-primary" />
-            Notificações & Alarmes
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Notification permission status */}
-          <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${notifStatus.bg}`}>
-                <NotifIcon className={`w-5 h-5 ${notifStatus.color}`} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Notificações Push</p>
-                <p className={`text-xs font-medium ${notifStatus.color}`}>{notifStatus.label}</p>
-              </div>
-            </div>
-            {notificationPermission === 'default' && (
-              <Button
-                size="sm"
-                onClick={requestNotificationPermission}
-                className="gradient-primary text-primary-foreground font-bold h-9"
-              >
-                <Bell className="w-4 h-4 mr-1.5" />
-                Ativar
-              </Button>
-            )}
-            {notificationPermission === 'denied' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  toast({
-                    title: 'Notificações bloqueadas',
-                    description: 'Acesse as configurações do navegador e permita notificações para este site.',
-                  });
-                }}
-                className="h-9 text-xs"
-              >
-                <Info className="w-3.5 h-3.5 mr-1.5" />
-                Como ativar
-              </Button>
-            )}
-            {notificationPermission === 'granted' && (
-              <div className="flex items-center gap-1.5 bg-success/10 text-success px-3 py-1.5 rounded-full">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold">OK</span>
-              </div>
-            )}
-          </div>
-
-          {/* Info box when denied */}
-          {notificationPermission === 'denied' && (
-            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20">
-              <p className="text-xs text-destructive/80 leading-relaxed">
-                <strong>Notificações estão bloqueadas.</strong> Para que os alarmes funcionem com o app minimizado, 
-                vá em <strong>Configurações do navegador → Permissões → Notificações</strong> e permita para este site.
-              </p>
-            </div>
-          )}
-
-          {/* Alarm sound toggle */}
-          <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isMuted ? 'bg-destructive/10' : 'bg-primary/10'}`}>
-                {isMuted ? <VolumeX className="w-5 h-5 text-destructive" /> : <Volume2 className="w-5 h-5 text-primary" />}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Sons do Alarme</p>
-                <p className="text-xs text-muted-foreground">{isMuted ? 'Silenciados' : 'Ativos'}</p>
-              </div>
-            </div>
-            <Switch checked={!isMuted} onCheckedChange={toggleMute} />
-          </div>
-
-          {/* Helpful tip */}
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10">
-            <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Para garantir que os alarmes funcionem com a tela bloqueada, 
-              <strong> instale o app</strong> na tela inicial e <strong>ative as notificações</strong>.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Edit Profile */}
       <Card className="glass-card">
@@ -257,6 +201,21 @@ const ProfilePage = () => {
             <Save className="w-4 h-4 mr-2" />
             {savingProfile ? 'Salvando...' : 'Salvar Perfil'}
           </Button>
+
+          <div className="pt-4 border-t border-border/50">
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isMuted ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                  {isMuted ? <VolumeX className="w-5 h-5 text-destructive" /> : <Volume2 className="w-5 h-5 text-primary" />}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Sons do Alarme</p>
+                  <p className="text-xs text-muted-foreground">{isMuted ? 'Silenciados' : 'Ativos'}</p>
+                </div>
+              </div>
+              <Switch checked={!isMuted} onCheckedChange={toggleMute} />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

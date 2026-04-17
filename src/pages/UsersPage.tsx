@@ -4,7 +4,8 @@ import { useApp } from '@/context/AppContext';
 import PageTransition from '@/components/PageTransition';
 import {
   Shield, User as UserIcon, Pencil, Trash2, Mail, Star, Flame, Search, Send,
-  CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, ClipboardList, Plus, X
+  CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, ClipboardList, Plus, X,
+  Bell, Loader2, Volume2
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ import ModernTimePicker from '@/components/ui/ModernTimePicker';
 import { useAlarms } from '@/context/AlarmContext';
 import { formatCesares } from '@/utils/format';
 import { LEVEL_EMOJI } from '@/constants';
-import { Loader2, Bell, Volume2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import type { User, UserType, Task, TaskFrequency, TaskStatus } from '@/types';
 
 const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -139,10 +140,12 @@ const UsersPage = () => {
   const newTaskShowWeekday  = newTaskForm.frequencia === 'diaria' || newTaskForm.frequencia === 'semanal';
   const editTaskShowWeekday = taskForm.frequencia === 'diaria' || taskForm.frequencia === 'semanal';
 
-  const filteredUsers = users.filter(u =>
-    u.nome.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => {
+    const nomeNormal = (u.nome || '').toLowerCase();
+    const emailNormal = (u.email || '').toLowerCase();
+    const searchNormal = (search || '').toLowerCase();
+    return nomeNormal.includes(searchNormal) || emailNormal.includes(searchNormal);
+  });
 
   const userTasks = useMemo(() =>
     selectedUser ? tasks.filter(t => t.usuario_id === selectedUser.id) : [],

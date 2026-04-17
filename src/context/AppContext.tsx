@@ -149,10 +149,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return mapped;
   }, []);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (silent = false) => {
     if (!authUser) { console.log('[AppContext] No authUser'); setLoading(false); return; }
-    console.log('[AppContext] fetchAll for:', authUser.id);
-    setLoading(true);
+    
+    if (!silent) {
+      console.log('[AppContext] fetchAll (visible) for:', authUser.id);
+      setLoading(true);
+    } else {
+      console.log('[AppContext] fetchAll (silent) for:', authUser.id);
+    }
     
     try {
       const usersData = await fetchUsers();
@@ -338,11 +343,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [authUser, stringifyTask]);
 
   const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>): Promise<boolean> => {
+    // Optimistic Update
+    const previousTasks = [...tasks];
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...data } : t));
+
     const payload: any = { ...data };
     
     // Tunnel dias_semana/excecoes into descricao if provided
     if (data.dias_semana !== undefined || data.descricao !== undefined || data.excecoes !== undefined) {
-      const currentTask = tasks.find(t => t.id === taskId);
+      const currentTask = previousTasks.find(t => t.id === taskId);
       const finalDesc = data.descricao !== undefined ? data.descricao : (currentTask?.descricao || '');
       const finalDays = data.dias_semana !== undefined ? data.dias_semana : currentTask?.dias_semana;
       const finalEx = data.excecoes !== undefined ? data.excecoes : currentTask?.excecoes;
@@ -362,13 +371,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { error } = await supabase.from('tasks').update(payload).eq('id', taskId);
     if (error) {
       console.error('Error editing task:', error);
+      setTasks(previousTasks); // Rollback
       return false;
     }
-    // fetchTasks() removed - realtime handles this
     return true;
   }, [stringifyTask, tasks]);
 
   const deleteTask = useCallback(async (taskId: string, onlyDate?: string): Promise<boolean> => {
+    const previousTasks = [...tasks];
+    
     if (onlyDate) {
       const task = tasks.find(t => t.id === taskId);
       if (task) {
@@ -377,12 +388,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    // Optimistic Update
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
     if (error) {
       console.error('Error deleting task:', error);
+      setTasks(previousTasks); // Rollback
       return false;
     }
-    // fetchTasks() removed - realtime handles this
     return true;
   }, [tasks, editTask]);
 
@@ -433,20 +447,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addUser = useCallback(async (_user: Omit<User, 'id' | 'data_criacao' | 'pontos' | 'nivel' | 'sequencia_dias'>) => {
     // Users are now created through signup - this is a placeholder
-    fetchAll();
+    fetchAll(true);
   }, [fetchAll]);
 
   const editUser = useCallback(async (userId: string, data: Partial<Omit<User, 'id' | 'data_criacao'>>) => {
+    // Optimistic Update
+    const previousUsers = [...users];
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+    
     const { tipo, ...profileData } = data as any;
-    if (Object.keys(profileData).length > 0) {
-      await supabase.from('profiles').update(profileData).eq('id', userId);
+    try {
+      if (Object.keys(profileData).length > 0) {
+        await supabase.from('profiles').update(profileData).eq('id', userId);
+      }
+      // Update role if tipo changed
+      if (tipo) {
+        await supabase.from('user_roles').update({ role: tipo }).eq('user_id', userId);
+      }
+    } catch (err) {
+      console.error('Error editing user:', err);
+      setUsers(previousUsers); // Rollback
     }
-    // Update role if tipo changed
-    if (tipo) {
-      await supabase.from('user_roles').update({ role: tipo }).eq('user_id', userId);
-    }
-    fetchAll();
-  }, [fetchAll]);
+    fetchAll(true);
+  }, [fetchAll, users]);
 
   const autoSyncShoppingList = useCallback(async () => {
     const lowStockItems = pantry.filter(item => item.quantidade <= item.quantidade_minima);
@@ -479,17 +502,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [fetchShopping]);
 
   const deleteUser = useCallback(async (userId: string) => {
+    const previousUsers = [...users];
+    // Optimistic Update
+    setUsers(prev => prev.filter(u => u.id !== userId));
+
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setUsers(previousUsers);
+      return;
+    }
+    
     const res = await supabase.functions.invoke('delete-user', {
       body: { user_id: userId },
     });
+    
     if (res.error) {
       console.error('Error deleting user:', res.error);
+      setUsers(previousUsers); // Rollback
       return;
     }
-    fetchAll();
-  }, [fetchAll]);
+    fetchAll(true);
+  }, [fetchAll, users]);
 
   return (
     <AppContext.Provider value={{
@@ -499,7 +532,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addPantryItem, editPantryItem, deletePantryItem,
       addShoppingItem, editShoppingItem, deleteShoppingItem,
       autoSyncShoppingList, clearBoughtItems,
-      addMeal, editMeal, deleteMeal, addUser, editUser, deleteUser, refreshData: fetchAll,
+      addMeal, editMeal, deleteMeal, addUser, editUser, deleteUser, refreshData: () => fetchAll(true),
     }}>
       {children}
     </AppContext.Provider>
