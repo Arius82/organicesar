@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { User, Camera, Lock, Save, Trophy, Flame, Star, Pencil, Bell, BellOff, Volume2, VolumeX, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
+import { User, Camera, Lock, Save, Trophy, Flame, Star, Pencil, Bell, BellOff, Volume2, VolumeX, CheckCircle2, AlertTriangle, Info, RefreshCw, Smartphone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import AvatarPicker from '@/components/AvatarPicker';
@@ -31,6 +31,16 @@ const ProfilePage = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+
+  const handleForceUpdate = async () => {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+    }
+    window.location.reload();
+  };
 
   const handleSaveProfile = async () => {
     if (!nome.trim()) {
@@ -230,16 +240,59 @@ const ProfilePage = () => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="newPassword">Nova Senha</Label>
-            <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+            <input 
+              id="newPassword" 
+              type="password" 
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={newPassword} 
+              onChange={e => setNewPassword(e.target.value)} 
+              placeholder="Mínimo 6 caracteres" 
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-            <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repita a nova senha" />
+            <input 
+              id="confirmPassword" 
+              type="password" 
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={confirmPassword} 
+              onChange={e => setConfirmPassword(e.target.value)} 
+              placeholder="Repita a nova senha" 
+            />
           </div>
           <Button onClick={handleChangePassword} disabled={savingPassword} variant="outline" className="w-full">
             <Lock className="w-4 h-4 mr-2" />
             {savingPassword ? 'Alterando...' : 'Alterar Senha'}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Android/PWA Support Tool */}
+      <Card className="glass-card border-primary/20 bg-primary/5 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-md text-primary">
+            <Smartphone className="w-5 h-5" />
+            Suporte para Android
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Se alguma aba (como a aba Usuários) não estiver abrindo no seu celular, 
+            isso geralmente é causado pelo cache do navegador. Use o botão abaixo para resolver.
+          </p>
+          <Button 
+            onClick={handleForceUpdate} 
+            variant="outline" 
+            className="w-full border-primary/30 text-primary hover:bg-primary/10 transition-colors h-11"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Limpar Cache & Atualizar App
+          </Button>
+          <div className="flex justify-center pt-2">
+            <Badge variant="outline" className="text-[10px] opacity-50 font-mono py-0 h-5">
+              v1.2.1-rev_android_safe
+            </Badge>
+          </div>
         </CardContent>
       </Card>
 

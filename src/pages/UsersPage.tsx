@@ -109,6 +109,18 @@ const UsersPage = () => {
   const { soundOptions } = useAlarms();
   const { addNotification } = useNotifications();
   const { toast } = useToast();
+  
+  // Mobile diagnostics: helps identify if the page crashes specifically on mobile
+  useEffect(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      console.log('[UsersPage] Mobile render check:', { 
+        isMaster, 
+        userCount: users.length, 
+        time: new Date().toLocaleTimeString() 
+      });
+    }
+  }, [isMaster, users.length]);
 
   // User list state
   const [showInvite, setShowInvite] = useState(false);
@@ -272,7 +284,7 @@ const UsersPage = () => {
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <PageTransition>
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20 safe-area-pb">
 
       {/* Search + invite */}
       <div className="flex items-center justify-between gap-3">
@@ -315,8 +327,24 @@ const UsersPage = () => {
                 </div>
                 {isMaster && user.id !== currentUser?.id && (
                   <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={e => openEditUser(e, user)}><Pencil className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={e => { e.stopPropagation(); setDeleteUserConfirm(user.id); }}><Trash2 className="w-4 h-4" /></Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-10 w-10 text-muted-foreground hover:text-primary active:scale-95 transition-all" 
+                      onClick={e => openEditUser(e, user)}
+                      title="Editar usuário"
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-10 w-10 text-muted-foreground hover:text-destructive active:scale-95 transition-all" 
+                      onClick={e => { e.stopPropagation(); setDeleteUserConfirm(user.id); }}
+                      title="Remover usuário"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </Button>
                   </div>
                 )}
               </div>

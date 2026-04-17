@@ -98,6 +98,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -125,5 +127,13 @@
   .bg-pattern {
     background-image: radial-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px);
     background-size: 24px 24px;
+  }
+
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top, 1rem);
   }
 }
