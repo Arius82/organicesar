@@ -123,6 +123,18 @@ const UsersPage = () => {
     }
   }, [isMaster, users.length]);
 
+  try {
+    if (!users || users.length === 0) {
+      return (
+        <div className="p-10 text-center animate-pulse">
+          <p className="text-muted-foreground">Carregando membros da família...</p>
+          <div className="mt-4 text-[10px] font-mono opacity-30">
+            DEBUG: users_ready={users ? 'yes' : 'no'} count={users?.length || 0}
+          </div>
+        </div>
+      );
+    }
+
   // User list state
   const [showInvite, setShowInvite] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
@@ -282,9 +294,11 @@ const UsersPage = () => {
     setShowNewTask(false);
   };
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <ErrorBoundary fallbackTitle="Erro ao carregar aba Usuários">
+      <div className="bg-primary/5 p-1 text-[8px] font-mono text-primary/40 text-center mb-1 rounded">
+        MOBILE_SAFE_RENDER_ACTIVE | MASTER:{isMaster ? 'Y' : 'N'} | USERS:{users.length}
+      </div>
       <PageTransition>
         <div className="space-y-4 pb-20 safe-area-pb">
 
@@ -858,6 +872,15 @@ const UsersPage = () => {
     </PageTransition>
     </ErrorBoundary>
   );
+  } catch (err: any) {
+    return (
+      <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-xl m-4">
+        <h2 className="text-destructive font-bold mb-2">Erro Crítico de Inicialização</h2>
+        <p className="text-xs font-mono bg-background p-2 rounded">{err?.message || 'Erro desconhecido'}</p>
+        <button className="mt-4 text-xs underline" onClick={() => window.location.reload()}>Tentar recarregar</button>
+      </div>
+    );
+  }
 };
 
 export default UsersPage;
