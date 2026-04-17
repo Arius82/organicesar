@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { useApp } from './AppContext';
 import type { Task } from '@/types';
+import { syncAlarms } from '@/utils/db';
 
 interface AlarmContextType {
   ringingTask: Task | null;
@@ -45,7 +46,6 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastTriggeredRef = useRef<string | null>(null); // "taskId:HH:mm"
   const isCurrentlyRinging = useRef(false);
-  const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
     localStorage.setItem('alarm_muted', isMuted.toString());
@@ -59,60 +59,43 @@ export const AlarmProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // 1. DEDICATED WEB WORKER for background timing
   // ────────────────────────────────────────────
   useEffect(() => {
-    try {
-      const worker = new Worker('/alarm-worker.js');
-      workerRef.current = worker;
+    // 1. Listen for messages from Service Worker (e.g. Stop Alarm)
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'STOP_ALARM') {
+        stopAlarm();
+      }
+    };
 
-      worker.onmessage = (e) => {
-        if (e.data.type === 'ALARM_DUE') {
-          const key = `${e.data.taskId}:${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
-          if (lastTriggeredRef.current === key || isCurrentlyRinging.current) return;
-          lastTriggeredRef.current = key;
-
-          const task = tasks.find(t => t.id === e.data.taskId);
-          if (task) {
-            triggerAlarmInternal(task);
-          } else {
-            // Task might not be loaded yet, use data from worker
-            showBackgroundNotification(e.data.taskTitle, e.data.taskDescription, e.data.taskId);
-          }
-        }
-      };
-
-      worker.postMessage({ type: 'START' });
-
-      return () => {
-        worker.postMessage({ type: 'STOP' });
-        worker.terminate();
-        workerRef.current = null;
-      };
-    } catch (err) {
-      console.error('[Alarm] Web Worker failed:', err);
-    }
-  }, []); // Only create worker once
+    navigator.serviceWorker?.addEventListener('message', handleMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', handleMessage);
+  }, []);
 
   // Send updated tasks to the worker whenever they change
   useEffect(() => {
-    if (!workerRef.current || !tasks) return;
+    if (!tasks) return;
 
-    // Only send alarm-relevant data to the worker (lightweight)
+    // Sync active alarms to IndexedDB for the Service Worker
     const alarmTasks = tasks
       .filter(t => t.alarme_ativo && t.status === 'pendente')
       .map(t => ({
         id: t.id,
         titulo: t.titulo,
         descricao: t.descricao,
-        alarme_ativo: t.alarme_ativo,
-        alarme_hora: t.alarme_hora,
-        alarme_som: t.alarme_som,
-        status: t.status,
-        data_limite: t.data_limite,
-        data_criacao: t.data_criacao,
-        dias_semana: t.dias_semana,
-        excecoes: t.excecoes,
+        hora: t.alarme_hora,
+        som: t.alarme_som,
+        ativo: t.alarme_ativo,
+        diasSemana: t.dias_semana || [],
+        excecoes: t.excecoes || [],
+        dataLimite: t.data_limite,
+        dataCriacao: t.data_criacao,
       }));
 
-    workerRef.current.postMessage({ type: 'UPDATE_TASKS', tasks: alarmTasks });
+    syncAlarms(alarmTasks).then(() => {
+      // Notify SW to refresh its checks
+      navigator.serviceWorker?.ready.then(reg => {
+        reg.active?.postMessage({ type: 'SYNC_ALARMS' });
+      });
+    });
   }, [tasks]);
 
   // ────────────────────────────────────────────
