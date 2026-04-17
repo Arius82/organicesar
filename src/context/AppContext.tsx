@@ -320,6 +320,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [shopping, pantry]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'status' | 'data_criacao'>): Promise<boolean> => {
+    // Optimistic Update
+    const tempId = `temp-${Date.now()}`;
+    const newTask: Task = {
+      ...task,
+      id: tempId,
+      status: 'pendente',
+      data_criacao: new Date().toISOString()
+    };
+    
+    setTasks(prev => [newTask, ...prev]);
+
     const { error } = await supabase.from('tasks').insert({
       titulo: task.titulo, 
       descricao: stringifyTask(task.descricao, task.dias_semana, task.excecoes, { 
@@ -332,15 +343,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       valor_recompensa: task.valor_recompensa,
       data_limite: task.data_limite, 
       created_by: authUser?.id,
-      // dias_semana is removed because we tunneling it through description
     });
+
     if (error) {
       console.error('Error adding task:', error);
+      setTasks(prev => prev.filter(t => t.id !== tempId)); // Rollback
       return false;
     }
-    // fetchTasks() removed - realtime handles this
+
+    // Refresh to get real ID and finalized data
+    fetchTasks();
     return true;
-  }, [authUser, stringifyTask]);
+  }, [authUser, stringifyTask, fetchTasks]);
 
   const editTask = useCallback(async (taskId: string, data: Partial<Omit<Task, 'id' | 'status' | 'data_criacao'>>): Promise<boolean> => {
     // Optimistic Update
