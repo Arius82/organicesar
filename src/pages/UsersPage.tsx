@@ -236,13 +236,7 @@ const UsersPage = () => {
   };
 
   // ─── New task for user ──────────────────────────────────────────────────────
-  const handleNewTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser || !newTaskForm.titulo.trim()) return;
-    if (newTaskShowWeekday && newTaskForm.dias_semana.length === 0) return;
-    
-    setSavingTask(true);
-    const success = await addTask({
+    const taskToSave = {
       titulo: newTaskForm.titulo.trim(),
       descricao: newTaskForm.descricao.trim(),
       usuario_id: selectedUser.id,
@@ -253,21 +247,31 @@ const UsersPage = () => {
       alarme_ativo: newTaskForm.alarme_ativo,
       alarme_hora: newTaskForm.alarme_hora,
       alarme_som: newTaskForm.alarme_som,
+    };
+
+    // Immediate UI feedback: close form and clear
+    setShowNewTask(false);
+    const taskName = newTaskForm.titulo;
+    setNewTaskForm({ 
+      titulo: '', descricao: '', frequencia: 'unica', 
+      valor_recompensa: '', data_limite: new Date().toISOString().split('T')[0], 
+      dias_semana: [], alarme_ativo: false, alarme_hora: '08:00', alarme_som: 1 
     });
+    
+    // Call addTask in background
+    setSavingTask(true);
+    const success = await addTask(taskToSave);
     setSavingTask(false);
 
     if (!success) {
       toast({
         title: 'Erro ao criar tarefa',
-        description: 'Não foi possível criar a tarefa. Tente novamente.',
+        description: 'Não foi possível salvar no servidor. A tarefa foi removida da lista.',
         variant: 'destructive',
       });
-      return;
+    } else {
+      addNotification(`Nova tarefa "${taskName}" atribuída a ${selectedUser.nome}`, 'info');
     }
-
-    addNotification(`Nova tarefa "${newTaskForm.titulo}" atribuída a ${selectedUser.nome}`, 'info');
-    setNewTaskForm({ titulo: '', descricao: '', frequencia: 'unica', valor_recompensa: '', data_limite: new Date().toISOString().split('T')[0], dias_semana: [] });
-    setShowNewTask(false);
   };
 
   return (
