@@ -9,6 +9,8 @@ import { AppProvider, useApp } from "@/context/AppContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { AlarmProvider, useAlarms } from "@/context/AlarmContext";
 import AlarmOverlay from "@/components/AlarmOverlay";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -46,7 +48,32 @@ const AppContent = () => {
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/tarefas" element={<TasksPage />} />
-        <Route path="/usuarios" element={isMaster ? <UsersPage /> : <Navigate to="/dashboard" />} />
+        <Route 
+          path="/usuarios" 
+          element={
+            isMaster ? (
+              <UsersPage />
+            ) : (
+              <div className="min-h-[400px] flex items-center justify-center p-6 text-center">
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+                    <AlertTriangle className="w-8 h-8 text-destructive" />
+                  </div>
+                  <h1 className="text-xl font-bold">Acesso Restrito</h1>
+                  <p className="text-muted-foreground max-w-xs mx-auto">
+                    Seu usuário atual não possui permissão Master ou ainda está carregando os dados do servidor.
+                  </p>
+                  <Button variant="outline" onClick={() => window.location.href = '/dashboard'}>
+                    Voltar ao Dashboard
+                  </Button>
+                  <div className="pt-4 border-t border-border mt-6">
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono">Debug: loading={loading ? 'true' : 'false'} isMaster={isMaster ? 'true' : 'false'}</p>
+                  </div>
+                </div>
+              </div>
+            )
+          } 
+        />
         <Route path="/despensa" element={<PantryPage />} />
         <Route path="/compras" element={<ShoppingListPage />} />
         <Route path="/cardapio" element={<MealPlannerPage />} />

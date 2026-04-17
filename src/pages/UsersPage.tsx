@@ -24,6 +24,7 @@ import { formatCesares } from '@/utils/format';
 import { LEVEL_EMOJI } from '@/constants';
 import { useToast } from '@/hooks/use-toast';
 import type { User, UserType, Task, TaskFrequency, TaskStatus } from '@/types';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -283,8 +284,9 @@ const UsersPage = () => {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <PageTransition>
-    <div className="space-y-4 pb-20 safe-area-pb">
+    <ErrorBoundary fallbackTitle="Erro ao carregar aba Usuários">
+      <PageTransition>
+        <div className="space-y-4 pb-20 safe-area-pb">
 
       {/* Search + invite */}
       <div className="flex items-center justify-between gap-3">
@@ -852,8 +854,9 @@ const UsersPage = () => {
       </Dialog>
 
       <InviteMemberDialog open={showInvite} onOpenChange={setShowInvite} />
-    </div>
+      </div>
     </PageTransition>
+    </ErrorBoundary>
   );
 };
 
